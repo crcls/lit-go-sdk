@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"sort"
 
+	"github.com/crcls/lit-go-sdk"
 	"github.com/crcls/lit-go-sdk/auth"
 	"github.com/crcls/lit-go-sdk/conditions"
 	"github.com/crcls/lit-go-sdk/crypto"
@@ -54,14 +55,14 @@ func closeWithError(msg string, ch chan DecryptResMsg) {
 	close(ch)
 }
 
-func GetDecryptionShare(url string, params EncryptedKeyParams, c *Client, ch chan DecryptResMsg) {
+func GetDecryptionShare(url string, params EncryptedKeyParams, ch chan DecryptResMsg, sendReq lit.SendReqFuncType) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		closeWithError("LitClient:Key: failed to marshal req body.", ch)
 		return
 	}
 
-	resp, err := c.NodeRequest(url+"/web/encryption/retrieve", reqBody)
+	resp, err := sendReq(url+"/web/encryption/retrieve", reqBody)
 	if err != nil {
 		closeWithError("LitClient:Key: Request to nodes failed.", ch)
 		return
@@ -100,7 +101,7 @@ func (c *Client) GetEncryptionKey(
 	ch := make(chan DecryptResMsg)
 
 	for url := range c.ConnectedNodes {
-		go GetDecryptionShare(url, params, c, ch)
+		go GetDecryptionShare(url, params, ch, c.NodeRequest)
 	}
 
 	shares := make([]crypto.DecryptionShare, 0)
