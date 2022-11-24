@@ -8,6 +8,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+
+	"github.com/crcls/lit-go-sdk/wasm"
 )
 
 func PKCS7Padding(plaintext []byte) []byte {
@@ -46,7 +48,7 @@ func AesEncrypt(key []byte, plaintext []byte) (ciphertext []byte) {
 }
 
 func ThresholdEncrypt(subPubKey []byte, message []byte) ([]byte, error) {
-	wasm, err := NewWasmInstance(context.Background())
+	wasm, err := wasm.NewWasmInstance(context.Background())
 	if err != nil {
 		fmt.Println("Failed to get wasm")
 		return nil, err

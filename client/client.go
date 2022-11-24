@@ -2,9 +2,25 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 
+	"github.com/crcls/lit-go-sdk/auth"
+	"github.com/crcls/lit-go-sdk/conditions"
 	"github.com/crcls/lit-go-sdk/config"
 )
+
+type IClient interface {
+	Connect() (bool, error)
+	GetEncryptionKey(params EncryptedKeyParams) ([]byte, error)
+	NodeRequest(url string, body []byte) (*http.Response, error)
+	SaveEncryptionKey(
+		symmetricKey []byte,
+		authSig auth.AuthSig,
+		authConditions []conditions.EvmContractCondition,
+		chain string,
+		permanent bool,
+	) (string, error)
+}
 
 type Client struct {
 	Config            *config.Config

@@ -13,7 +13,7 @@ func (c *Client) Connect() (bool, error) {
 	ch := make(chan HnskMsg, len(nodes))
 
 	for _, url := range nodes {
-		go Handshake(url, c, ch)
+		go Handshake(url, ch, c.NodeRequest)
 	}
 
 	var count uint8
@@ -76,7 +76,7 @@ func (c *Client) NodeRequest(url string, body []byte) (*http.Response, error) {
 	}
 
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("lit-js-sdk-version", c.Config.LitVersion)
+	request.Header.Set("lit-js-sdk-version", c.Config.Version)
 
 	return client.Do(request)
 }

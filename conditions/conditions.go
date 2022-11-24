@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
+	"github.com/crcls/lit-go-sdk"
 	"github.com/crcls/lit-go-sdk/auth"
 )
 
@@ -34,8 +35,8 @@ type SaveCondMsg struct {
 func StoreEncryptionConditionWithNode(
 	url string,
 	params SaveCondParams,
-	c *Client,
 	ch chan SaveCondMsg,
+	sendReq lit.SendReqFuncType,
 ) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
@@ -46,7 +47,7 @@ func StoreEncryptionConditionWithNode(
 
 	// fmt.Printf("Req Body: %s\n", string(reqBody))
 
-	resp, err := c.NodeRequest(url+"/web/encryption/store", reqBody)
+	resp, err := sendReq(url+"/web/encryption/store", reqBody)
 	if err != nil {
 		ch <- SaveCondMsg{nil, err}
 		close(ch)

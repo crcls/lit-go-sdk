@@ -5,9 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"sort"
 
 	"github.com/crcls/lit-go-sdk/auth"
+	"github.com/crcls/lit-go-sdk/conditions"
 	"github.com/crcls/lit-go-sdk/crypto"
 )
 
@@ -33,11 +35,59 @@ func (s ServerKeys) Key(name string) (string, bool) {
 	}
 }
 
+type DecryptionShareResponse struct {
+	DecryptionShare string `json:"decryptionShare"`
+	ErrorCode       string `json:"errorCode"`
+	Message         string `json:"message"`
+	Result          string `json:"result"`
+	ShareIndex      uint8  `json:"shareIndex"`
+	Status          string `json:"status"`
+}
+
+type DecryptResMsg struct {
+	Share *DecryptionShareResponse
+	Err   error
+}
+
+func closeWithError(msg string, ch chan DecryptResMsg) {
+	ch <- DecryptResMsg{nil, fmt.Errorf(msg)}
+	close(ch)
+}
+
+func GetDecryptionShare(url string, params EncryptedKeyParams, c *Client, ch chan DecryptResMsg) {
+	reqBody, err := json.Marshal(params)
+	if err != nil {
+		closeWithError("LitClient:Key: failed to marshal req body.", ch)
+		return
+	}
+
+	resp, err := c.NodeRequest(url+"/web/encryption/retrieve", reqBody)
+	if err != nil {
+		closeWithError("LitClient:Key: Request to nodes failed.", ch)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		closeWithError("LitClient:Key: Failed to read response.", ch)
+		return
+	}
+
+	share := &DecryptionShareResponse{}
+	if err := json.Unmarshal(body, share); err != nil {
+		closeWithError("LitClient:Key: Failed unmarshal the response.", ch)
+		return
+	}
+
+	ch <- DecryptResMsg{share, nil}
+}
+
 type EncryptedKeyParams struct {
-	AuthSig               *auth.AuthSig           `json:"authSig"`
-	Chain                 string                  `json:"chain"`
-	EvmContractConditions []*EvmContractCondition `json:"evmContractConditions"`
-	ToDecrypt             string                  `json:"toDecrypt"`
+	AuthSig               *auth.AuthSig                      `json:"authSig"`
+	Chain                 string                             `json:"chain"`
+	EvmContractConditions []*conditions.EvmContractCondition `json:"evmContractConditions"`
+	ToDecrypt             string                             `json:"toDecrypt"`
 }
 
 func (c *Client) GetEncryptionKey(
@@ -47,13 +97,13 @@ func (c *Client) GetEncryptionKey(
 		return nil, fmt.Errorf("LitClient: not ready")
 	}
 
-	ch := make(chan crypto.DecryptResMsg)
+	ch := make(chan DecryptResMsg)
 
 	for url := range c.ConnectedNodes {
-		go crypto.GetDecryptionShare(url, params, c, ch)
+		go GetDecryptionShare(url, params, c, ch)
 	}
 
-	shares := make([]crypto.DecryptionShareResponse, 0)
+	shares := make([]crypto.DecryptionShare, 0)
 	count := 0
 	for resp := range ch {
 		if resp.Err != nil || resp.Share.ErrorCode != "" {
@@ -63,7 +113,10 @@ func (c *Client) GetEncryptionKey(
 				fmt.Println(resp.Share.Message)
 			}
 		} else if resp.Share.Status == "fulfilled" || resp.Share.Result == "success" {
-			shares = append(shares, *resp.Share)
+			shares = append(shares, crypto.DecryptionShare{
+				Index: resp.Share.ShareIndex,
+				Share: resp.Share.DecryptionShare,
+			})
 		}
 		count++
 
@@ -72,12 +125,12 @@ func (c *Client) GetEncryptionKey(
 		}
 	}
 
-	if len(shares) < int(c.MinimumNodeCount) {
+	if len(shares) < int(c.Config.MinimumNodeCount) {
 		return nil, fmt.Errorf("LitClient: failed to retrieve enough shares")
 	}
 
 	sort.SliceStable(shares, func(i, j int) bool {
-		return shares[i].ShareIndex < shares[j].ShareIndex
+		return shares[i].Index < shares[j].Index
 	})
 
 	return crypto.ThresholdDecrypt(shares, params.ToDecrypt, c.NetworkPubKeySet)
@@ -86,7 +139,7 @@ func (c *Client) GetEncryptionKey(
 func (c *Client) SaveEncryptionKey(
 	symmetricKey []byte,
 	authSig auth.AuthSig,
-	authConditions []EvmContractCondition,
+	authConditions []conditions.EvmContractCondition,
 	chain string,
 	permanent bool,
 ) (string, error) {
@@ -113,9 +166,9 @@ func (c *Client) SaveEncryptionKey(
 	cHash.Write(condJson)
 	cHashStr := hex.EncodeToString(cHash.Sum(nil))
 
-	ch := make(chan SaveCondMsg)
+	ch := make(chan conditions.SaveCondMsg)
 
-	scp := SaveCondParams{
+	scp := conditions.SaveCondParams{
 		Key:     hashStr,
 		Val:     cHashStr,
 		AuthSig: authSig,
@@ -129,11 +182,11 @@ func (c *Client) SaveEncryptionKey(
 	}
 
 	for url := range c.ConnectedNodes {
-		go StoreEncryptionConditionWithNode(
+		go conditions.StoreEncryptionConditionWithNode(
 			url,
 			scp,
-			c,
 			ch,
+			c.NodeRequest,
 		)
 	}
 
