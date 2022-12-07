@@ -6,7 +6,7 @@ import (
 	"github.com/crcls/lit-go-sdk/config"
 )
 
-var keys = `{
+var testKeys = `{
 	"serverPublicKey": "ServerPubKey",
 	"subnetPublicKey": "SubnetPubKey",
 	"networkPublicKey": "NetworkPubKey",
@@ -14,7 +14,7 @@ var keys = `{
 }`
 
 func init() {
-	testResponse = keys
+	testResponse = testKeys
 }
 
 func TestHandshake(t *testing.T) {
