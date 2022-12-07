@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -8,7 +9,6 @@ import (
 	"io/ioutil"
 	"sort"
 
-	"github.com/crcls/lit-go-sdk"
 	"github.com/crcls/lit-go-sdk/auth"
 	"github.com/crcls/lit-go-sdk/conditions"
 	"github.com/crcls/lit-go-sdk/crypto"
@@ -50,34 +50,30 @@ type DecryptResMsg struct {
 	Err   error
 }
 
-func closeWithError(msg string, ch chan DecryptResMsg) {
-	ch <- DecryptResMsg{nil, fmt.Errorf(msg)}
-	close(ch)
-}
-
-func GetDecryptionShare(url string, params EncryptedKeyParams, ch chan DecryptResMsg, sendReq lit.SendReqFuncType) {
+func (c *ClientFactory) GetDecryptionShare(url string, params EncryptedKeyParams, ch chan DecryptResMsg) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
-		closeWithError("LitClient:Key: failed to marshal req body.", ch)
+		ch <- DecryptResMsg{nil, err}
 		return
 	}
 
-	resp, err := sendReq(url+"/web/encryption/retrieve", reqBody)
+	ctx, _ := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	resp, err := c.NodeRequest(ctx, url+"/web/encryption/retrieve", reqBody)
 	if err != nil {
-		closeWithError("LitClient:Key: Request to nodes failed.", ch)
+		ch <- DecryptResMsg{nil, err}
 		return
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		closeWithError("LitClient:Key: Failed to read response.", ch)
+		ch <- DecryptResMsg{nil, err}
 		return
 	}
 
 	share := &DecryptionShareResponse{}
 	if err := json.Unmarshal(body, share); err != nil {
-		closeWithError("LitClient:Key: Failed unmarshal the response.", ch)
+		ch <- DecryptResMsg{nil, err}
 		return
 	}
 
@@ -91,7 +87,7 @@ type EncryptedKeyParams struct {
 	ToDecrypt             string                             `json:"toDecrypt"`
 }
 
-func (c *Client) GetEncryptionKey(
+func (c *ClientFactory) GetEncryptionKey(
 	params EncryptedKeyParams,
 ) ([]byte, error) {
 	if !c.Ready {
@@ -101,12 +97,13 @@ func (c *Client) GetEncryptionKey(
 	ch := make(chan DecryptResMsg)
 
 	for url := range c.ConnectedNodes {
-		go GetDecryptionShare(url, params, ch, c.NodeRequest)
+		go c.GetDecryptionShare(url, params, ch)
 	}
 
 	shares := make([]crypto.DecryptionShare, 0)
 	count := 0
 	for resp := range ch {
+		fmt.Printf("%v\n", resp)
 		if resp.Err != nil || resp.Share.ErrorCode != "" {
 			if resp.Err != nil {
 				fmt.Println(resp.Err)
@@ -137,7 +134,7 @@ func (c *Client) GetEncryptionKey(
 	return crypto.ThresholdDecrypt(shares, params.ToDecrypt, c.NetworkPubKeySet)
 }
 
-func (c *Client) SaveEncryptionKey(
+func (c *ClientFactory) SaveEncryptionKey(
 	symmetricKey []byte,
 	authSig auth.AuthSig,
 	authConditions []conditions.EvmContractCondition,
@@ -167,9 +164,9 @@ func (c *Client) SaveEncryptionKey(
 	cHash.Write(condJson)
 	cHashStr := hex.EncodeToString(cHash.Sum(nil))
 
-	ch := make(chan conditions.SaveCondMsg)
+	ch := make(chan SaveCondMsg)
 
-	scp := conditions.SaveCondParams{
+	scp := SaveCondParams{
 		Key:     hashStr,
 		Val:     cHashStr,
 		AuthSig: authSig,
@@ -183,11 +180,10 @@ func (c *Client) SaveEncryptionKey(
 	}
 
 	for url := range c.ConnectedNodes {
-		go conditions.StoreEncryptionConditionWithNode(
+		go c.StoreEncryptionConditionWithNode(
 			url,
 			scp,
 			ch,
-			c.NodeRequest,
 		)
 	}
 
@@ -212,7 +208,7 @@ func (c *Client) SaveEncryptionKey(
 	return hex.EncodeToString(key), nil
 }
 
-func (c *Client) MostCommonKey(name string) (string, error) {
+func (c *ClientFactory) MostCommonKey(name string) (string, error) {
 	keyList := make(map[string]int)
 	for _, keys := range c.ServerKeysForNode {
 		k, ok := keys.Key(name)

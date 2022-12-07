@@ -2,13 +2,26 @@ package client
 
 import (
 	"testing"
+
+	"github.com/crcls/lit-go-sdk/config"
 )
 
+var keys = `{
+	"serverPublicKey": "ServerPubKey",
+	"subnetPublicKey": "SubnetPubKey",
+	"networkPublicKey": "NetworkPubKey",
+	"networkPublicKeySet": "NetworkPubKeySet"
+}`
+
+func init() {
+	testResponse = keys
+}
+
 func TestHandshake(t *testing.T) {
-	c := &MockClient{}
+	c, _ := New(config.New("localhost"))
 	ch := make(chan HnskMsg, 1)
 
-	Handshake("/web/handshake", ch, c.NodeRequest)
+	c.Handshake("/web/handshake", ch)
 
 	select {
 	case msg := <-ch:

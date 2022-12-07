@@ -9,7 +9,7 @@ import (
 	"github.com/crcls/lit-go-sdk/config"
 )
 
-type IClient interface {
+type Client interface {
 	Connect() (bool, error)
 	GetEncryptionKey(params EncryptedKeyParams) ([]byte, error)
 	NodeRequest(url string, body []byte) (*http.Response, error)
@@ -22,7 +22,7 @@ type IClient interface {
 	) (string, error)
 }
 
-type Client struct {
+type ClientFactory struct {
 	Config            *config.Config
 	ConnectedNodes    map[string]bool
 	Ready             bool
@@ -33,12 +33,12 @@ type Client struct {
 	NetworkPubKeySet  string
 }
 
-func New(c *config.Config) (*Client, error) {
+func New(c *config.Config) (*ClientFactory, error) {
 	if c == nil {
 		c = config.New(config.DEFAULT_NETWORK)
 	}
 
-	client := &Client{
+	client := &ClientFactory{
 		Config:            c,
 		ConnectedNodes:    make(map[string]bool),
 		Ready:             false,
@@ -46,8 +46,13 @@ func New(c *config.Config) (*Client, error) {
 	}
 
 	if ok, err := client.Connect(); !ok || err != nil {
-		fmt.Printf("LitClient: Failed to connect to LitProtocol")
-		return nil, err
+		e := err
+
+		if err == nil {
+			e = fmt.Errorf("Client connect failed")
+		}
+
+		return nil, e
 	}
 
 	return client, nil

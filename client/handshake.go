@@ -1,11 +1,10 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-
-	"github.com/crcls/lit-go-sdk"
 )
 
 type HnskMsg struct {
@@ -14,7 +13,7 @@ type HnskMsg struct {
 	Keys      *ServerKeys
 }
 
-func Handshake(url string, ch chan HnskMsg, sendReq lit.SendReqFuncType) {
+func (c *ClientFactory) Handshake(url string, ch chan HnskMsg) {
 	// TODO: make this configurable once supported by the network
 	reqBody, err := json.Marshal(map[string]string{
 		"clientPublicKey": "test",
@@ -24,7 +23,8 @@ func Handshake(url string, ch chan HnskMsg, sendReq lit.SendReqFuncType) {
 		return
 	}
 
-	resp, err := sendReq(url+"/web/handshake", reqBody)
+	ctx, _ := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	resp, err := c.NodeRequest(ctx, url+"/web/handshake", reqBody)
 	if err != nil {
 		ch <- HnskMsg{url, false, nil}
 		return
