@@ -5,9 +5,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
+
+	"github.com/crcls/lit-go-sdk/wasm"
 )
 
 func PKCS7UnPadding(plaintext []byte) []byte {
@@ -31,56 +31,13 @@ func AesDecrypt(key []byte, ciphertext []byte) (plaintext []byte) {
 	return PKCS7UnPadding(plaintext)
 }
 
-type DecryptionShareResponse struct {
-	DecryptionShare string `json:"decryptionShare"`
-	ErrorCode       string `json:"errorCode"`
-	Message         string `json:"message"`
-	Result          string `json:"result"`
-	ShareIndex      uint8  `json:"shareIndex"`
-	Status          string `json:"status"`
+type DecryptionShare struct {
+	Index uint8
+	Share string
 }
 
-type DecryptResMsg struct {
-	Share *DecryptionShareResponse
-	Err   error
-}
-
-func closeWithError(msg string, ch chan DecryptResMsg) {
-	ch <- DecryptResMsg{nil, fmt.Errorf(msg)}
-	close(ch)
-}
-
-func GetDecryptionShare(url string, params EncryptedKeyParams, c *Client, ch chan DecryptResMsg) {
-	reqBody, err := json.Marshal(params)
-	if err != nil {
-		closeWithError("LitClient:Key: failed to marshal req body.", ch)
-		return
-	}
-
-	resp, err := c.NodeRequest(url+"/web/encryption/retrieve", reqBody)
-	if err != nil {
-		closeWithError("LitClient:Key: Request to nodes failed.", ch)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		closeWithError("LitClient:Key: Failed to read response.", ch)
-		return
-	}
-
-	share := &DecryptionShareResponse{}
-	if err := json.Unmarshal(body, share); err != nil {
-		closeWithError("LitClient:Key: Failed unmarshal the response.", ch)
-		return
-	}
-
-	ch <- DecryptResMsg{share, nil}
-}
-
-func ThresholdDecrypt(shares []DecryptionShareResponse, ciphertext, netPubKeySet string) ([]byte, error) {
-	wasm, err := NewWasmInstance(context.Background())
+func ThresholdDecrypt(shares []DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error) {
+	wasm, err := wasm.NewWasmInstance(context.Background())
 	if err != nil {
 		fmt.Println("GetEncryptionKey: failed to get wasm")
 		return nil, err
@@ -88,12 +45,12 @@ func ThresholdDecrypt(shares []DecryptionShareResponse, ciphertext, netPubKeySet
 	defer wasm.Close()
 
 	for i, share := range shares {
-		if _, err := wasm.Call("set_share_indexes", uint64(i), uint64(share.ShareIndex)); err != nil {
+		if _, err := wasm.Call("set_share_indexes", uint64(i), uint64(share.Index)); err != nil {
 			fmt.Println("GetEncryptionKey: set_share_indexes failed")
 			return nil, err
 		}
 
-		shareBytes, err := hex.DecodeString(share.DecryptionShare)
+		shareBytes, err := hex.DecodeString(share.Share)
 		if err != nil {
 			return nil, err
 		}
