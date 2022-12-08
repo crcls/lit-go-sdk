@@ -22,12 +22,6 @@ func (mhc *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-var testResponse string
-
-func init() {
-	httpClient = &MockHttpClient{testResponse}
-}
-
 func TestConnect(t *testing.T) {
 	_, err := New(config.New("localhost"))
 
