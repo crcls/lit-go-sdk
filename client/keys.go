@@ -50,7 +50,7 @@ type DecryptResMsg struct {
 	Err   error
 }
 
-func (c *ClientFactory) GetDecryptionShare(url string, params EncryptedKeyParams, ch chan DecryptResMsg) {
+func (c *Client) GetDecryptionShare(url string, params EncryptedKeyParams, ch chan DecryptResMsg) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
@@ -87,7 +87,7 @@ type EncryptedKeyParams struct {
 	ToDecrypt             string                             `json:"toDecrypt"`
 }
 
-func (c *ClientFactory) GetEncryptionKey(
+func (c *Client) GetEncryptionKey(
 	params EncryptedKeyParams,
 ) ([]byte, error) {
 	if !c.Ready {
@@ -134,7 +134,7 @@ func (c *ClientFactory) GetEncryptionKey(
 	return crypto.ThresholdDecrypt(shares, params.ToDecrypt, c.NetworkPubKeySet)
 }
 
-func (c *ClientFactory) SaveEncryptionKey(
+func (c *Client) SaveEncryptionKey(
 	symmetricKey []byte,
 	authSig auth.AuthSig,
 	authConditions []conditions.EvmContractCondition,
@@ -208,7 +208,7 @@ func (c *ClientFactory) SaveEncryptionKey(
 	return hex.EncodeToString(key), nil
 }
 
-func (c *ClientFactory) MostCommonKey(name string) (string, error) {
+func (c *Client) MostCommonKey(name string) (string, error) {
 	keyList := make(map[string]int)
 	for _, keys := range c.ServerKeysForNode {
 		k, ok := keys.Key(name)

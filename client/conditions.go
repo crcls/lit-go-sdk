@@ -26,7 +26,7 @@ type SaveCondMsg struct {
 	Err      error
 }
 
-func (c *ClientFactory) StoreEncryptionConditionWithNode(
+func (c *Client) StoreEncryptionConditionWithNode(
 	url string,
 	params SaveCondParams,
 	ch chan SaveCondMsg,

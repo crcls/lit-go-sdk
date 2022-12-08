@@ -13,7 +13,7 @@ type HnskMsg struct {
 	Keys      *ServerKeys
 }
 
-func (c *ClientFactory) Handshake(url string, ch chan HnskMsg) {
+func (c *Client) Handshake(url string, ch chan HnskMsg) {
 	// TODO: make this configurable once supported by the network
 	reqBody, err := json.Marshal(map[string]string{
 		"clientPublicKey": "test",

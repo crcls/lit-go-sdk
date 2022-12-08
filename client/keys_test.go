@@ -57,7 +57,7 @@ func TestServerKeysKeys(t *testing.T) {
 // }
 
 func TestMostCommonKey(t *testing.T) {
-	client := &ClientFactory{
+	client := &Client{
 		ServerKeysForNode: map[string]ServerKeys{
 			"http://localhost:7470": ServerKeys{
 				ServerPubKey: "common",
