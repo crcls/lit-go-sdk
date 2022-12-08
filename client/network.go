@@ -19,7 +19,7 @@ func init() {
 	httpClient = &http.Client{}
 }
 
-func (c *ClientFactory) Connect() (bool, error) {
+func (c *Client) Connect() (bool, error) {
 	nodes := config.NETWORKS[c.Config.Network]
 	ch := make(chan HnskMsg, len(nodes))
 
@@ -73,7 +73,7 @@ func (c *ClientFactory) Connect() (bool, error) {
 	return false, fmt.Errorf("Failed to connect to enough nodes")
 }
 
-func (c *ClientFactory) NodeRequest(ctx context.Context, url string, body []byte) (*http.Response, error) {
+func (c *Client) NodeRequest(ctx context.Context, url string, body []byte) (*http.Response, error) {
 	request, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("LitClient: Failed to create the request for %s.\n", url)
