@@ -6,18 +6,8 @@ import (
 	"github.com/crcls/lit-go-sdk/config"
 )
 
-var testKeys = `{
-	"serverPublicKey": "ServerPubKey",
-	"subnetPublicKey": "SubnetPubKey",
-	"networkPublicKey": "NetworkPubKey",
-	"networkPublicKeySet": "NetworkPubKeySet"
-}`
-
-func init() {
-	testResponse = testKeys
-}
-
 func TestHandshake(t *testing.T) {
+	httpClient = &MockHttpClient{testKeys}
 	c, _ := New(config.New("localhost"))
 	ch := make(chan HnskMsg, 1)
 
@@ -29,7 +19,7 @@ func TestHandshake(t *testing.T) {
 			t.Errorf("Handshake returned false connection")
 		} else if msg.Keys == nil {
 			t.Errorf("Handshake response keys are nil")
-		} else if msg.Keys.NetworkPubKeySet != "NetworkPubKeySet" {
+		} else if msg.Keys.NetworkPubKeySet != "networkPubKeySet" {
 			t.Errorf("Unexpected NetworkPubKeySet key %s", msg.Keys.NetworkPubKeySet)
 		}
 	}

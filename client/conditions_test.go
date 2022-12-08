@@ -7,29 +7,27 @@ import (
 	"github.com/crcls/lit-go-sdk/config"
 )
 
-func init() {
-	testResponse = `{
-		"result": "success",
-		"error": ""
-	}`
+var params = SaveCondParams{
+	Key: "key",
+	Val: "val",
+	AuthSig: auth.AuthSig{
+		Sig:           "sig",
+		DerivedVia:    "derivedVia",
+		SignedMessage: "signedMessage",
+		Address:       "address",
+	},
+	Chain:     "chain",
+	Permanent: 0,
 }
 
 func TestStoreEncryptionConditionWithNode(t *testing.T) {
+	httpClient = &MockHttpClient{`{
+		"result": "success",
+		"error": ""
+	}`}
+
 	c, _ := New(config.New("localhost"))
 	ch := make(chan SaveCondMsg, 1)
-
-	params := SaveCondParams{
-		Key: "key",
-		Val: "val",
-		AuthSig: auth.AuthSig{
-			Sig:           "sig",
-			DerivedVia:    "derivedVia",
-			SignedMessage: "signedMessage",
-			Address:       "address",
-		},
-		Chain:     "chain",
-		Permanent: 0,
-	}
 
 	c.StoreEncryptionConditionWithNode("/test", params, ch)
 
@@ -37,6 +35,10 @@ func TestStoreEncryptionConditionWithNode(t *testing.T) {
 	case msg := <-ch:
 		if msg.Err != nil {
 			t.Errorf("Unexpected error: %s", msg.Err.Error())
+		} else if msg.Response.Result != "success" {
+			t.Errorf("Unexpected response result: %s", msg.Response.Result)
+		} else if msg.Response.Error != "" {
+			t.Errorf("Unexpected response error: %s", msg.Response.Error)
 		}
 	}
 }

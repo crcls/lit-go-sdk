@@ -4,6 +4,13 @@ import (
 	"testing"
 )
 
+var testKeys = `{
+	"serverPublicKey": "serverPubKey",
+	"subnetPublicKey": "subnetPubKey",
+	"networkPublicKey": "networkPubKey",
+	"networkPublicKeySet": "networkPubKeySet"
+}`
+
 func TestServerKeysKeys(t *testing.T) {
 	sk := ServerKeys{
 		"serverPubKey",
