@@ -96,7 +96,7 @@ func (c *Client) GetEncryptionKey(
 
 	ch := make(chan DecryptResMsg)
 
-	for url := range c.ConnectedNodes {
+	for _, url := range c.ConnectedNodes {
 		go c.GetDecryptionShare(url, params, ch)
 	}
 
@@ -179,7 +179,7 @@ func (c *Client) SaveEncryptionKey(
 		scp.Permanent = 0
 	}
 
-	for url := range c.ConnectedNodes {
+	for _, url := range c.ConnectedNodes {
 		go c.StoreEncryptionConditionWithNode(
 			url,
 			scp,
