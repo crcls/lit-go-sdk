@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"sort"
 
 	"github.com/crcls/lit-go-sdk/auth"
@@ -208,12 +209,13 @@ func (c *Client) SaveEncryptionKey(
 	return hex.EncodeToString(key), nil
 }
 
-func (c *Client) MostCommonKey(name string) (string, error) {
+func (c *Client) MostCommonKey(name string) string {
 	keyList := make(map[string]int)
 	for _, keys := range c.ServerKeysForNode {
 		k, ok := keys.Key(name)
 		if !ok {
-			return "", fmt.Errorf("Key not found: %s", name)
+			log.Printf("MostCommonKey: Key not found: %s\n", name)
+			continue
 		}
 
 		if _, ok := keyList[k]; ok {
@@ -221,6 +223,10 @@ func (c *Client) MostCommonKey(name string) (string, error) {
 		} else {
 			keyList[k] = 1
 		}
+	}
+
+	if len(keyList) == 0 {
+		return ""
 	}
 
 	keys := make([]string, 0, len(keyList))
@@ -232,5 +238,5 @@ func (c *Client) MostCommonKey(name string) (string, error) {
 		return keyList[keys[i]] > keyList[keys[j]]
 	})
 
-	return keys[0], nil
+	return keys[0]
 }

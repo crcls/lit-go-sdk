@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-
-	"github.com/crcls/lit-go-sdk/config"
 )
 
 type MockHttpClient struct {
@@ -23,9 +21,28 @@ func (mhc *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestConnect(t *testing.T) {
-	_, err := New(config.New("localhost"))
+	client := &Client{
+		Config:            testConfig,
+		Ready:             false,
+		ServerKeysForNode: make(map[string]ServerKeys),
+	}
 
-	if err != nil {
+	if err := client.Connect(); err != nil {
 		t.Errorf("%+v", err)
+	}
+}
+
+func TestConnectFail(t *testing.T) {
+	httpClient = &MockHttpClient{`{
+		"result": "fail"
+	}`}
+	client := &Client{
+		Config:            testConfig,
+		Ready:             false,
+		ServerKeysForNode: make(map[string]ServerKeys),
+	}
+
+	if err := client.Connect(); err == nil {
+		t.Errorf("Expected an error from Connect")
 	}
 }

@@ -21,12 +21,14 @@ var params = SaveCondParams{
 }
 
 func TestStoreEncryptionConditionWithNode(t *testing.T) {
+	httpClient = &MockHttpClient{testKeys}
+	c, _ := New(config.New("localhost"))
+
 	httpClient = &MockHttpClient{`{
 		"result": "success",
 		"error": ""
 	}`}
 
-	c, _ := New(config.New("localhost"))
 	ch := make(chan SaveCondMsg, 1)
 
 	c.StoreEncryptionConditionWithNode("/test", params, ch)

@@ -36,27 +36,10 @@ func (c *Client) Connect() error {
 			c.ServerKeysForNode[msg.Url] = keys
 
 			if count >= c.Config.MinimumNodeCount {
-				var err error
-				c.ServerPubKey, err = c.MostCommonKey("ServerPubKey")
-				if err != nil {
-					fmt.Printf("%v\n", err)
-					return err
-				}
-				c.SubnetPubKey, err = c.MostCommonKey("SubnetPubKey")
-				if err != nil {
-					fmt.Printf("%v\n", err)
-					return err
-				}
-				c.NetworkPubKey, err = c.MostCommonKey("NetworkPubKey")
-				if err != nil {
-					fmt.Printf("%v\n", err)
-					return err
-				}
-				c.NetworkPubKeySet, err = c.MostCommonKey("NetworkPubKeySet")
-				if err != nil {
-					fmt.Printf("%v\n", err)
-					return err
-				}
+				c.ServerPubKey = c.MostCommonKey("ServerPubKey")
+				c.SubnetPubKey = c.MostCommonKey("SubnetPubKey")
+				c.NetworkPubKey = c.MostCommonKey("NetworkPubKey")
+				c.NetworkPubKeySet = c.MostCommonKey("NetworkPubKeySet")
 			}
 		} else {
 			log.Printf("Failed to connect to Lit Node: %s\n", msg.Url)

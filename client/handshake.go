@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 )
 
@@ -41,6 +42,21 @@ func (c *Client) Handshake(url string, ch chan HnskMsg) {
 	if err := json.Unmarshal(body, &keys); err != nil {
 		ch <- HnskMsg{url, false, nil, err}
 		return
+	}
+
+	keyNames := [4]string{
+		"ServerPubKey",
+		"ServerPubKey",
+		"NetworkPubKey",
+		"NetworkPubKeySet",
+	}
+
+	for _, keyName := range keyNames {
+		key, _ := keys.Key(keyName)
+		if key == "" {
+			ch <- HnskMsg{url, false, nil, fmt.Errorf("Missing Key in handshake response.")}
+			return
+		}
 	}
 
 	ch <- HnskMsg{url, true, &keys, nil}
