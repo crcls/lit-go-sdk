@@ -1,14 +1,12 @@
 package client
 
 import (
-	"fmt"
-
 	"github.com/crcls/lit-go-sdk/config"
 )
 
 type Client struct {
 	Config            *config.Config
-	ConnectedNodes    map[string]bool
+	ConnectedNodes    []string
 	Ready             bool
 	ServerKeysForNode map[string]ServerKeys
 	ServerPubKey      string
@@ -24,19 +22,12 @@ func New(c *config.Config) (*Client, error) {
 
 	client := &Client{
 		Config:            c,
-		ConnectedNodes:    make(map[string]bool),
 		Ready:             false,
 		ServerKeysForNode: make(map[string]ServerKeys),
 	}
 
-	if ok, err := client.Connect(); !ok || err != nil {
-		e := err
-
-		if err == nil {
-			e = fmt.Errorf("Client connect failed")
-		}
-
-		return nil, e
+	if err := client.Connect(); err != nil {
+		return nil, err
 	}
 
 	return client, nil

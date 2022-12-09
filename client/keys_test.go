@@ -36,33 +36,6 @@ func TestServerKeysKeys(t *testing.T) {
 	}
 }
 
-// func TestGetEncryptionKey(t *testing.T) {
-// 	c := NewMockClient()
-//
-// 	params := EncryptedKeyParams{
-// 		AuthSig: &auth.AuthSig{
-// 			Sig:           "signature",
-// 			DerivedVia:    "lit-go-sdk",
-// 			SignedMessage: "signedmessage",
-// 			Address:       "0x0000000000000000000000000000000000000000",
-// 		},
-// 		Chain:                 "localhost",
-// 		EvmContractConditions: []*conditions.EvmContractCondition{&conditions.EvmContractCondition{}},
-// 		ToDecrypt:             "fedcba9876543210",
-// 	}
-//
-// 	if ok, _ := c.Connect(); !ok {
-// 		t.Errorf("Mocked Connect method failed")
-// 	}
-//
-// 	key, err := c.GetEncryptionKey(params)
-// 	if err != nil {
-// 		t.Errorf("%s", err)
-// 	} else if string(key) != "0123456789abcdef" {
-// 		t.Errorf("Unexpected key returned from GetEncryptionKey: %s", key)
-// 	}
-// }
-
 func TestMostCommonKey(t *testing.T) {
 	client := &Client{
 		ServerKeysForNode: map[string]ServerKeys{
@@ -78,10 +51,8 @@ func TestMostCommonKey(t *testing.T) {
 		},
 	}
 
-	key, err := client.MostCommonKey("ServerPubKey")
-	if err != nil {
-		t.Errorf("%v", err)
-	} else if key != "common" {
+	key := client.MostCommonKey("ServerPubKey")
+	if key != "common" {
 		t.Errorf("Unexpected result from MostCommonKey: expected `common` got %s", key)
 	}
 }

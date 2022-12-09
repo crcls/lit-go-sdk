@@ -38,3 +38,12 @@ func TestNewWithConfig(t *testing.T) {
 		t.Errorf("Unexpected network value: %s", c.Config.Network)
 	}
 }
+
+func TestNewFailConnect(t *testing.T) {
+	httpClient = &MockHttpClient{"500"}
+	_, err := New(testConfig)
+
+	if err == nil {
+		t.Errorf("Expected an error when the client connects")
+	}
+}
