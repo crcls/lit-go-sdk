@@ -2,16 +2,18 @@ package client
 
 import (
 	"testing"
-
-	"github.com/crcls/lit-go-sdk/config"
 )
 
 func TestHandshake(t *testing.T) {
-	httpClient = &MockHttpClient{testKeys}
-	c, _ := New(config.New("localhost"))
+	httpClient = &MockHttpClient{Response: testKeys}
+	c := &Client{
+		Config:            testConfig,
+		Ready:             false,
+		ServerKeysForNode: make(map[string]ServerKeys),
+	}
 	ch := make(chan HnskMsg, 1)
 
-	c.Handshake("/web/handshake", ch)
+	c.Handshake("http://localhost", ch)
 
 	select {
 	case msg := <-ch:
@@ -21,6 +23,44 @@ func TestHandshake(t *testing.T) {
 			t.Errorf("Handshake response keys are nil")
 		} else if msg.Keys.NetworkPubKeySet != "networkPubKeySet" {
 			t.Errorf("Unexpected NetworkPubKeySet key %s", msg.Keys.NetworkPubKeySet)
+		}
+	}
+}
+
+func TestHandshakeResponseMissingKeys(t *testing.T) {
+	httpClient = &MockHttpClient{Response: `{"result": "fail"}`}
+	c := &Client{
+		Config:            testConfig,
+		Ready:             false,
+		ServerKeysForNode: make(map[string]ServerKeys),
+	}
+	ch := make(chan HnskMsg, 1)
+
+	c.Handshake("http://localhost", ch)
+
+	select {
+	case msg := <-ch:
+		if msg.Error == nil {
+			t.Errorf("Expected to fail with Missing Key error")
+		}
+	}
+}
+
+func TestHandshakeFailedResponse(t *testing.T) {
+	httpClient = &MockHttpClient{StatusCode: 500}
+	c := &Client{
+		Config:            testConfig,
+		Ready:             false,
+		ServerKeysForNode: make(map[string]ServerKeys),
+	}
+	ch := make(chan HnskMsg, 1)
+
+	c.Handshake("http://localhost", ch)
+
+	select {
+	case msg := <-ch:
+		if msg.Error == nil {
+			t.Errorf("Expected to fail with Missing Key error")
 		}
 	}
 }

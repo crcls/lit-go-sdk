@@ -58,12 +58,20 @@ func (c *Client) GetDecryptionShare(url string, params EncryptedKeyParams, ch ch
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	defer cancel()
+
 	resp, err := c.NodeRequest(ctx, url+"/web/encryption/retrieve", reqBody)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
 		return
 	}
+
+	if resp.StatusCode != 200 {
+		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
+		return
+	}
+
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)

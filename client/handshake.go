@@ -24,12 +24,20 @@ func (c *Client) Handshake(url string, ch chan HnskMsg) {
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	defer cancel()
+
 	resp, err := c.NodeRequest(ctx, url+"/web/handshake", reqBody)
 	if err != nil {
 		ch <- HnskMsg{url, false, nil, err}
 		return
 	}
+
+	if resp.StatusCode != 200 {
+		ch <- HnskMsg{url, false, nil, fmt.Errorf("Request failed: %s", resp.Status)}
+		return
+	}
+
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -46,7 +54,7 @@ func (c *Client) Handshake(url string, ch chan HnskMsg) {
 
 	keyNames := [4]string{
 		"ServerPubKey",
-		"ServerPubKey",
+		"SubnetPubKey",
 		"NetworkPubKey",
 		"NetworkPubKeySet",
 	}

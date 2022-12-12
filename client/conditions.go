@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/crcls/lit-go-sdk/auth"
@@ -34,15 +35,20 @@ func (c *Client) StoreEncryptionConditionWithNode(
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		ch <- SaveCondMsg{nil, err}
-		close(ch)
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	defer cancel()
+
 	resp, err := c.NodeRequest(ctx, url+"/web/encryption/store", reqBody)
 	if err != nil {
 		ch <- SaveCondMsg{nil, err}
-		close(ch)
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		ch <- SaveCondMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
 		return
 	}
 	defer resp.Body.Close()
@@ -50,14 +56,12 @@ func (c *Client) StoreEncryptionConditionWithNode(
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		ch <- SaveCondMsg{nil, err}
-		close(ch)
 		return
 	}
 
 	r := &SaveCondResponse{}
 	if err := json.Unmarshal(body, r); err != nil {
 		ch <- SaveCondMsg{nil, err}
-		close(ch)
 		return
 	}
 
