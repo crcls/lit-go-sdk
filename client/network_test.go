@@ -36,7 +36,7 @@ func TestConnect(t *testing.T) {
 		ServerKeysForNode: make(map[string]ServerKeys),
 	}
 
-	if err := client.Connect(); err != nil {
+	if err := client.Connect(testctx); err != nil {
 		t.Errorf("%+v", err)
 	}
 }
@@ -51,7 +51,7 @@ func TestConnectFail(t *testing.T) {
 		ServerKeysForNode: make(map[string]ServerKeys),
 	}
 
-	if err := client.Connect(); err == nil {
+	if err := client.Connect(testctx); err == nil {
 		t.Errorf("Expected an error from Connect")
 	}
 }

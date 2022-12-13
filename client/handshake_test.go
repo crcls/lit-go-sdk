@@ -13,7 +13,7 @@ func TestHandshake(t *testing.T) {
 	}
 	ch := make(chan HnskMsg, 1)
 
-	c.Handshake("http://localhost", ch)
+	c.Handshake(testctx, "http://localhost", ch)
 
 	select {
 	case msg := <-ch:
@@ -36,7 +36,7 @@ func TestHandshakeResponseMissingKeys(t *testing.T) {
 	}
 	ch := make(chan HnskMsg, 1)
 
-	c.Handshake("http://localhost", ch)
+	c.Handshake(testctx, "http://localhost", ch)
 
 	select {
 	case msg := <-ch:
@@ -55,7 +55,7 @@ func TestHandshakeFailedResponse(t *testing.T) {
 	}
 	ch := make(chan HnskMsg, 1)
 
-	c.Handshake("http://localhost", ch)
+	c.Handshake(testctx, "http://localhost", ch)
 
 	select {
 	case msg := <-ch:

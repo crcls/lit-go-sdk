@@ -1,6 +1,8 @@
 package client
 
 import (
+	"context"
+
 	"github.com/crcls/lit-go-sdk/config"
 )
 
@@ -15,7 +17,7 @@ type Client struct {
 	NetworkPubKeySet  string
 }
 
-func New(c *config.Config) (*Client, error) {
+func New(ctx context.Context, c *config.Config) (*Client, error) {
 	if c == nil {
 		c = config.New(config.DEFAULT_NETWORK)
 	}
@@ -26,7 +28,7 @@ func New(c *config.Config) (*Client, error) {
 		ServerKeysForNode: make(map[string]ServerKeys),
 	}
 
-	if err := client.Connect(); err != nil {
+	if err := client.Connect(ctx); err != nil {
 		return nil, err
 	}
 

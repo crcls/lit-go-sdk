@@ -36,8 +36,8 @@ type DecryptionShare struct {
 	Share string
 }
 
-func ThresholdDecrypt(shares []DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error) {
-	wasm, err := wasm.NewWasmInstance(context.Background())
+func ThresholdDecrypt(ctx context.Context, shares []DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error) {
+	wasm, err := wasm.NewWasmInstance(ctx)
 	if err != nil {
 		fmt.Println("GetEncryptionKey: failed to get wasm")
 		return nil, err
