@@ -61,9 +61,9 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) NodeRequest(ctx context.Context, url string, body []byte) (*http.Response, error) {
-	request, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, fmt.Errorf("LitClient: Failed to create the request for %s.\n", url)
+		return nil, err
 	}
 
 	request.Header.Set("Content-Type", "application/json")

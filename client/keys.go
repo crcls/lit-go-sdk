@@ -15,6 +15,14 @@ import (
 	"github.com/crcls/lit-go-sdk/crypto"
 )
 
+var thresholdDecrypt func(shares []crypto.DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error)
+var thresholdEncrypt func(subPubKey []byte, message []byte) ([]byte, error)
+
+func init() {
+	thresholdDecrypt = crypto.ThresholdDecrypt
+	thresholdEncrypt = crypto.ThresholdEncrypt
+}
+
 type ServerKeys struct {
 	ServerPubKey     string `json:"serverPublicKey"`
 	SubnetPubKey     string `json:"subnetPublicKey"`
@@ -58,12 +66,20 @@ func (c *Client) GetDecryptionShare(url string, params EncryptedKeyParams, ch ch
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	defer cancel()
+
 	resp, err := c.NodeRequest(ctx, url+"/web/encryption/retrieve", reqBody)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
 		return
 	}
+
+	if resp.StatusCode != 200 {
+		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
+		return
+	}
+
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -104,12 +120,11 @@ func (c *Client) GetEncryptionKey(
 	shares := make([]crypto.DecryptionShare, 0)
 	count := 0
 	for resp := range ch {
-		fmt.Printf("%v\n", resp)
 		if resp.Err != nil || resp.Share.ErrorCode != "" {
 			if resp.Err != nil {
-				fmt.Println(resp.Err)
+				log.Print(resp.Err)
 			} else if resp.Share.Message != "" {
-				fmt.Println(resp.Share.Message)
+				log.Print(resp.Share.Message)
 			}
 		} else if resp.Share.Status == "fulfilled" || resp.Share.Result == "success" {
 			shares = append(shares, crypto.DecryptionShare{
@@ -132,7 +147,7 @@ func (c *Client) GetEncryptionKey(
 		return shares[i].Index < shares[j].Index
 	})
 
-	return crypto.ThresholdDecrypt(shares, params.ToDecrypt, c.NetworkPubKeySet)
+	return thresholdDecrypt(shares, params.ToDecrypt, c.NetworkPubKeySet)
 }
 
 func (c *Client) SaveEncryptionKey(
@@ -147,7 +162,7 @@ func (c *Client) SaveEncryptionKey(
 		return "", err
 	}
 
-	key, err := crypto.ThresholdEncrypt(subPubKey, symmetricKey)
+	key, err := thresholdEncrypt(subPubKey, symmetricKey)
 	if err != nil {
 		return "", err
 	}
@@ -192,7 +207,7 @@ func (c *Client) SaveEncryptionKey(
 	var e error
 	for msg := range ch {
 		if msg.Err != nil || msg.Response == nil {
-			fmt.Printf("Failed to store condition %v\n", msg.Err)
+			log.Print(msg.Err)
 			e = msg.Err
 		}
 		count++

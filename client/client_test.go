@@ -14,7 +14,7 @@ var testConfig = &config.Config{
 }
 
 func TestNewWithDefaultConfig(t *testing.T) {
-	httpClient = &MockHttpClient{testKeys}
+	httpClient = &MockHttpClient{Response: testKeys}
 	c, err := New(nil)
 
 	if err != nil {
@@ -27,7 +27,7 @@ func TestNewWithDefaultConfig(t *testing.T) {
 }
 
 func TestNewWithConfig(t *testing.T) {
-	httpClient = &MockHttpClient{testKeys}
+	httpClient = &MockHttpClient{Response: testKeys}
 	c, err := New(config.New("localhost"))
 
 	if err != nil {
@@ -40,7 +40,7 @@ func TestNewWithConfig(t *testing.T) {
 }
 
 func TestNewFailConnect(t *testing.T) {
-	httpClient = &MockHttpClient{"500"}
+	httpClient = &MockHttpClient{StatusCode: 500}
 	_, err := New(testConfig)
 
 	if err == nil {
