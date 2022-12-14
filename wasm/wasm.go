@@ -3,7 +3,6 @@ package wasm
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -33,7 +32,9 @@ func (w *Wasm) Call(name string, args ...uint64) (interface{}, error) {
 }
 
 func (w *Wasm) Close() {
-	w.Instance.Close(w.Context)
+	if err := w.Instance.Close(w.Context); err != nil {
+		panic(err)
+	}
 }
 
 func getStringFromMemory(m api.Memory, i, len uint32) (string, error) {
@@ -93,7 +94,7 @@ func (h *StringHeap) wbingenLog9a99fb1af846153b(i uint32) {
 }
 
 func NewWasmInstance(ctx context.Context) (*Wasm, error) {
-	wasmBytes, err := ioutil.ReadFile("./lit/threshold_crypto_wasm_bridge_bg.wasm")
+	wasmBytes, err := WasmBin()
 	if err != nil {
 		return nil, err
 	}
