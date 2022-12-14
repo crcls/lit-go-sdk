@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"testing"
 
 	"github.com/crcls/lit-go-sdk/config"
@@ -13,9 +14,11 @@ var testConfig = &config.Config{
 	Version:          config.VERSION,
 }
 
+var testctx = context.Background()
+
 func TestNewWithDefaultConfig(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys}
-	c, err := New(nil)
+	c, err := New(testctx, nil)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err.Error())
@@ -28,7 +31,7 @@ func TestNewWithDefaultConfig(t *testing.T) {
 
 func TestNewWithConfig(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys}
-	c, err := New(config.New("localhost"))
+	c, err := New(testctx, config.New("localhost"))
 
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err.Error())
@@ -41,7 +44,7 @@ func TestNewWithConfig(t *testing.T) {
 
 func TestNewFailConnect(t *testing.T) {
 	httpClient = &MockHttpClient{StatusCode: 500}
-	_, err := New(testConfig)
+	_, err := New(testctx, testConfig)
 
 	if err == nil {
 		t.Errorf("Expected an error when the client connects")

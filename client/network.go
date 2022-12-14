@@ -20,12 +20,12 @@ func init() {
 	httpClient = &http.Client{}
 }
 
-func (c *Client) Connect() error {
+func (c *Client) Connect(ctx context.Context) error {
 	nodes := config.NETWORKS[c.Config.Network]
 	ch := make(chan HnskMsg, len(nodes))
 
 	for _, url := range nodes {
-		go c.Handshake(url, ch)
+		go c.Handshake(ctx, url, ch)
 	}
 
 	var count uint8

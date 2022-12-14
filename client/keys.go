@@ -15,8 +15,8 @@ import (
 	"github.com/crcls/lit-go-sdk/crypto"
 )
 
-var thresholdDecrypt func(shares []crypto.DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error)
-var thresholdEncrypt func(subPubKey []byte, message []byte) ([]byte, error)
+var thresholdDecrypt func(ctx context.Context, shares []crypto.DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error)
+var thresholdEncrypt func(ctx context.Context, subPubKey []byte, message []byte) ([]byte, error)
 
 func init() {
 	thresholdDecrypt = crypto.ThresholdDecrypt
@@ -59,14 +59,14 @@ type DecryptResMsg struct {
 	Err   error
 }
 
-func (c *Client) GetDecryptionShare(url string, params EncryptedKeyParams, ch chan DecryptResMsg) {
+func (c *Client) GetDecryptionShare(ctx context.Context, url string, params EncryptedKeyParams, ch chan DecryptResMsg) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), c.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
 	defer cancel()
 
 	resp, err := c.NodeRequest(ctx, url+"/web/encryption/retrieve", reqBody)
@@ -105,6 +105,7 @@ type EncryptedKeyParams struct {
 }
 
 func (c *Client) GetEncryptionKey(
+	ctx context.Context,
 	params EncryptedKeyParams,
 ) ([]byte, error) {
 	if !c.Ready {
@@ -114,7 +115,7 @@ func (c *Client) GetEncryptionKey(
 	ch := make(chan DecryptResMsg)
 
 	for _, url := range c.ConnectedNodes {
-		go c.GetDecryptionShare(url, params, ch)
+		go c.GetDecryptionShare(ctx, url, params, ch)
 	}
 
 	shares := make([]crypto.DecryptionShare, 0)
@@ -147,10 +148,11 @@ func (c *Client) GetEncryptionKey(
 		return shares[i].Index < shares[j].Index
 	})
 
-	return thresholdDecrypt(shares, params.ToDecrypt, c.NetworkPubKeySet)
+	return thresholdDecrypt(ctx, shares, params.ToDecrypt, c.NetworkPubKeySet)
 }
 
 func (c *Client) SaveEncryptionKey(
+	ctx context.Context,
 	symmetricKey []byte,
 	authSig auth.AuthSig,
 	authConditions []conditions.EvmContractCondition,
@@ -162,7 +164,7 @@ func (c *Client) SaveEncryptionKey(
 		return "", err
 	}
 
-	key, err := thresholdEncrypt(subPubKey, symmetricKey)
+	key, err := thresholdEncrypt(ctx, subPubKey, symmetricKey)
 	if err != nil {
 		return "", err
 	}
@@ -197,6 +199,7 @@ func (c *Client) SaveEncryptionKey(
 
 	for _, url := range c.ConnectedNodes {
 		go c.StoreEncryptionConditionWithNode(
+			ctx,
 			url,
 			scp,
 			ch,

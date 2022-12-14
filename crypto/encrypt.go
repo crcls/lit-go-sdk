@@ -47,8 +47,8 @@ func AesEncrypt(key []byte, plaintext []byte) (ciphertext []byte) {
 	return
 }
 
-func ThresholdEncrypt(subPubKey []byte, message []byte) ([]byte, error) {
-	wasm, err := wasm.NewWasmInstance(context.Background())
+func ThresholdEncrypt(ctx context.Context, subPubKey []byte, message []byte) ([]byte, error) {
+	wasm, err := wasm.NewWasmInstance(ctx)
 	if err != nil {
 		fmt.Println("Failed to get wasm")
 		return nil, err
