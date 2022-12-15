@@ -9,12 +9,17 @@ import (
 	"github.com/tetratelabs/wazero/imports/emscripten"
 )
 
-type Wasm struct {
+type Wasm interface {
+	Call(name string, args ...uint64) (interface{}, error)
+	Close()
+}
+
+type WasmInstance struct {
 	Context  context.Context
 	Instance api.Module
 }
 
-func (w *Wasm) Call(name string, args ...uint64) (interface{}, error) {
+func (w WasmInstance) Call(name string, args ...uint64) (interface{}, error) {
 	function := w.Instance.ExportedFunction(name)
 
 	result, err := function.Call(context.Background(), args...)
@@ -31,7 +36,7 @@ func (w *Wasm) Call(name string, args ...uint64) (interface{}, error) {
 	}
 }
 
-func (w *Wasm) Close() {
+func (w WasmInstance) Close() {
 	if err := w.Instance.Close(w.Context); err != nil {
 		panic(err)
 	}
@@ -93,10 +98,11 @@ func (h *StringHeap) wbingenLog9a99fb1af846153b(i uint32) {
 	fmt.Printf("WBG: %v\n", h.Stack[i])
 }
 
-func NewWasmInstance(ctx context.Context) (*Wasm, error) {
+func NewWasmInstance(ctx context.Context) (Wasm, error) {
+	wasmInstance := WasmInstance{Context: ctx}
 	wasmBytes, err := WasmBin()
 	if err != nil {
-		return nil, err
+		return wasmInstance, err
 	}
 
 	r := wazero.NewRuntime(ctx)
@@ -108,17 +114,19 @@ func NewWasmInstance(ctx context.Context) (*Wasm, error) {
 		NewFunctionBuilder().WithFunc(h.wbingenStringNew).Export("__wbindgen_string_new").
 		NewFunctionBuilder().WithFunc(h.wbingenLog9a99fb1af846153b).Export("__wbg_log_9a99fb1af846153b").
 		Instantiate(ctx, r); err != nil {
-		return nil, err
+		return wasmInstance, err
 	}
 
 	if _, err := emscripten.Instantiate(ctx, r); err != nil {
-		return nil, err
+		return wasmInstance, err
 	}
 
 	mod, err := r.InstantiateModuleFromBinary(ctx, wasmBytes)
 	if err != nil {
-		return nil, err
+		return wasmInstance, err
 	}
 
-	return &Wasm{ctx, mod}, nil
+	wasmInstance.Instance = mod
+
+	return wasmInstance, nil
 }
