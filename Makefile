@@ -7,3 +7,6 @@ generate:
 security:
 	@gosec -exclude-dir=.cache -exclude-generated ./...
 	@echo "[OK] Go security check was completed!"
+
+test:
+	@go test ./...
