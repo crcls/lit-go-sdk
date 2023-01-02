@@ -6,7 +6,6 @@ import (
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/imports/emscripten"
 )
 
 type Wasm interface {
@@ -114,10 +113,6 @@ func NewWasmInstance(ctx context.Context) (Wasm, error) {
 		NewFunctionBuilder().WithFunc(h.wbingenStringNew).Export("__wbindgen_string_new").
 		NewFunctionBuilder().WithFunc(h.wbingenLog9a99fb1af846153b).Export("__wbg_log_9a99fb1af846153b").
 		Instantiate(ctx, r); err != nil {
-		return wasmInstance, err
-	}
-
-	if _, err := emscripten.Instantiate(ctx, r); err != nil {
 		return wasmInstance, err
 	}
 
