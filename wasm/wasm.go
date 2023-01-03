@@ -63,7 +63,7 @@ type StringHeap struct {
 	Stack []string
 }
 
-func (h *StringHeap) wbingenObjectDropRef(mod api.Module, i uint32) {
+func (h *StringHeap) wbingenObjectDropRef(ctx context.Context, mod api.Module, i uint32) {
 	// fmt.Printf("Object Drop Ref %d\n", i)
 
 	if i >= uint32(len(h.Stack)) {
