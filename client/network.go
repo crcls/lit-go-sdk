@@ -53,6 +53,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	if uint8(len(c.ConnectedNodes)) >= c.Config.MinimumNodeCount {
+		log.Println("Connected to the Lit Network.")
 		c.Ready = true
 		return nil
 	}
@@ -65,6 +66,10 @@ func (c *Client) NodeRequest(ctx context.Context, url string, body []byte) (*htt
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("Sending request to node:")
+	log.Printf("url: %s\n", url)
+	log.Printf("body: %s\n", string(body))
 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("lit-js-sdk-version", c.Config.Version)

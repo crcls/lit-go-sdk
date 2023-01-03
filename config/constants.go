@@ -2,7 +2,7 @@ package config
 
 import "time"
 
-const VERSION = "1.2.7"
+const VERSION = "1.1.241"
 
 const REQUEST_TIMEOUT = time.Duration(5 * time.Second)
 
