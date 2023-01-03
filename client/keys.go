@@ -122,10 +122,12 @@ func (c *Client) GetEncryptionKey(
 	count := 0
 	for resp := range ch {
 		if resp.Err != nil || resp.Share.ErrorCode != "" {
-			if resp.Err != nil {
-				log.Print(resp.Err)
-			} else if resp.Share.Message != "" {
-				log.Print(resp.Share.Message)
+			if c.Config.Debug {
+				if resp.Err != nil {
+					log.Print(resp.Err)
+				} else if resp.Share.Message != "" {
+					log.Print(resp.Share.Message)
+				}
 			}
 		} else if resp.Share.Status == "fulfilled" || resp.Share.Result == "success" {
 			shares = append(shares, crypto.DecryptionShare{
@@ -210,7 +212,10 @@ func (c *Client) SaveEncryptionKey(
 	var e error
 	for msg := range ch {
 		if msg.Err != nil || msg.Response == nil {
-			log.Print(msg.Err)
+			if c.Config.Debug {
+				log.Print(msg.Err)
+			}
+
 			e = msg.Err
 		}
 		count++
@@ -232,7 +237,10 @@ func (c *Client) MostCommonKey(name string) string {
 	for _, keys := range c.ServerKeysForNode {
 		k, ok := keys.Key(name)
 		if !ok {
-			log.Printf("MostCommonKey: Key not found: %s\n", name)
+			if c.Config.Debug {
+				log.Printf("MostCommonKey: Key not found: %s\n", name)
+			}
+
 			continue
 		}
 

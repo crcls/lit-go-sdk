@@ -6,7 +6,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"fmt"
 	"io"
 )
 
@@ -48,13 +47,11 @@ func AesEncrypt(key []byte, plaintext []byte) (ciphertext []byte) {
 func ThresholdEncrypt(ctx context.Context, subPubKey []byte, message []byte) ([]byte, error) {
 	wasm, err := newWasmInstance(ctx)
 	if err != nil {
-		fmt.Println("Failed to get wasm")
 		return nil, err
 	}
 
 	rngSize, err := wasm.Call("get_rng_values_size")
 	if err != nil {
-		fmt.Println("Failed to get rng size")
 		return nil, err
 	}
 
@@ -62,21 +59,18 @@ func ThresholdEncrypt(ctx context.Context, subPubKey []byte, message []byte) ([]
 
 	for i, value := range rngValues {
 		if _, err := wasm.Call("set_rng_value", uint64(i), uint64(value)); err != nil {
-			fmt.Println("Failed to set RNG value")
 			return nil, err
 		}
 	}
 
 	for i, b := range subPubKey {
 		if _, err := wasm.Call("set_pk_byte", uint64(i), uint64(b)); err != nil {
-			fmt.Printf("Failed to set pub key byte '%x' at %d\n", b, i)
 			return nil, err
 		}
 	}
 
 	for i, b := range message {
 		if _, err := wasm.Call("set_msg_byte", uint64(i), uint64(b)); err != nil {
-			fmt.Println("Failed to set message byte")
 			return nil, err
 		}
 	}
@@ -86,7 +80,6 @@ func ThresholdEncrypt(ctx context.Context, subPubKey []byte, message []byte) ([]
 	for i := uint64(0); i < ctSize.(uint64); i++ {
 		b, err := wasm.Call("get_ct_byte", i)
 		if err != nil {
-			fmt.Println("Failed to get ciphertext byte")
 			return nil, err
 		}
 		ciphertext = append(ciphertext, byte(b.(uint64)))

@@ -41,7 +41,7 @@ func (c *Client) Connect(ctx context.Context) error {
 				c.NetworkPubKey = c.MostCommonKey("NetworkPubKey")
 				c.NetworkPubKeySet = c.MostCommonKey("NetworkPubKeySet")
 			}
-		} else {
+		} else if c.Config.Debug {
 			log.Printf("Failed to connect to Lit Node: %s\n", msg.Url)
 			log.Printf("\tReason: %s\n", msg.Error.Error())
 		}
@@ -53,7 +53,10 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	if uint8(len(c.ConnectedNodes)) >= c.Config.MinimumNodeCount {
-		log.Println("Connected to the Lit Network.")
+		if c.Config.Debug {
+			log.Println("Connected to the Lit Network.")
+		}
+
 		c.Ready = true
 		return nil
 	}
@@ -67,9 +70,11 @@ func (c *Client) NodeRequest(ctx context.Context, url string, body []byte) (*htt
 		return nil, err
 	}
 
-	log.Println("Sending request to node:")
-	log.Printf("url: %s\n", url)
-	log.Printf("body: %s\n", string(body))
+	if c.Config.Debug {
+		log.Println("Sending request to node:")
+		log.Printf("url: %s\n", url)
+		log.Printf("body: %s\n", string(body))
+	}
 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("lit-js-sdk-version", c.Config.Version)

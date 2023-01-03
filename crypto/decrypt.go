@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/hex"
-	"fmt"
 )
 
 func PKCS7UnPadding(plaintext []byte) []byte {
@@ -37,14 +36,12 @@ type DecryptionShare struct {
 func ThresholdDecrypt(ctx context.Context, shares []DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error) {
 	wasmMod, err := newWasmInstance(ctx)
 	if err != nil {
-		fmt.Println("GetEncryptionKey: failed to get wasm")
 		return nil, err
 	}
 	defer wasmMod.Close()
 
 	for i, share := range shares {
 		if _, err := wasmMod.Call("set_share_indexes", uint64(i), uint64(share.Index)); err != nil {
-			fmt.Println("GetEncryptionKey: set_share_indexes failed")
 			return nil, err
 		}
 
@@ -55,7 +52,6 @@ func ThresholdDecrypt(ctx context.Context, shares []DecryptionShare, ciphertext,
 
 		for idx, b := range shareBytes {
 			if _, err := wasmMod.Call("set_decryption_shares_byte", uint64(idx), uint64(i), uint64(b)); err != nil {
-				fmt.Println("GetEncryptionKey: set_decryption_shares_byte failed")
 				return nil, err
 			}
 		}
@@ -68,7 +64,6 @@ func ThresholdDecrypt(ctx context.Context, shares []DecryptionShare, ciphertext,
 
 	for idx, b := range pkSetBytes {
 		if _, err := wasmMod.Call("set_mc_byte", uint64(idx), uint64(b)); err != nil {
-			fmt.Println("GetEncryptionKey: set_mc_byte failed")
 			return nil, err
 		}
 	}
@@ -80,14 +75,12 @@ func ThresholdDecrypt(ctx context.Context, shares []DecryptionShare, ciphertext,
 
 	for idx, b := range ctBytes {
 		if _, err := wasmMod.Call("set_ct_byte", uint64(idx), uint64(b)); err != nil {
-			fmt.Println("GetEncryptionKey: set_ct_byte failed")
 			return nil, err
 		}
 	}
 
 	size, err := wasmMod.Call("combine_decryption_shares", uint64(len(shares)), uint64(len(pkSetBytes)), uint64(len(ctBytes)))
 	if err != nil {
-		fmt.Println("GetEncryptionKey: combine_decryption_shares failed")
 		return nil, err
 	}
 
@@ -97,7 +90,6 @@ func ThresholdDecrypt(ctx context.Context, shares []DecryptionShare, ciphertext,
 	for i := 0; i < si; i++ {
 		b, err := wasmMod.Call("get_msg_byte", uint64(i))
 		if err != nil {
-			fmt.Println("GetEncryptionKey: get_msg_byte failed")
 			return nil, err
 		}
 

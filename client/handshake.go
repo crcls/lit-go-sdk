@@ -33,7 +33,7 @@ func (c *Client) Handshake(ctx context.Context, url string, ch chan HnskMsg) {
 		return
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode == 500 {
 		ch <- HnskMsg{url, false, nil, fmt.Errorf("Request failed: %s", resp.Status)}
 		return
 	}
@@ -43,6 +43,11 @@ func (c *Client) Handshake(ctx context.Context, url string, ch chan HnskMsg) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		ch <- HnskMsg{url, false, nil, err}
+		return
+	}
+
+	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		ch <- HnskMsg{url, false, nil, fmt.Errorf("Request failed: %s", string(body))}
 		return
 	}
 

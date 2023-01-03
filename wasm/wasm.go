@@ -3,6 +3,7 @@ package wasm
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -64,8 +65,6 @@ type StringHeap struct {
 }
 
 func (h *StringHeap) wbingenObjectDropRef(ctx context.Context, mod api.Module, i uint32) {
-	// fmt.Printf("Object Drop Ref %d\n", i)
-
 	if i >= uint32(len(h.Stack)) {
 		panic(fmt.Errorf("Index %d is out of range for %d", i, len(h.Stack)))
 	}
@@ -74,8 +73,6 @@ func (h *StringHeap) wbingenObjectDropRef(ctx context.Context, mod api.Module, i
 }
 
 func (h *StringHeap) wbingenStringNew(ctx context.Context, mod api.Module, i, l uint32) uint32 {
-	// fmt.Printf("String New: memorySize: %d, index: %d, len: %d\n", mod.Memory().Size(context.Background()), i, l)
-
 	s, err := getStringFromMemory(mod.Memory(), i, l)
 	if err != nil {
 		panic(err)
@@ -88,13 +85,11 @@ func (h *StringHeap) wbingenStringNew(ctx context.Context, mod api.Module, i, l 
 }
 
 func (h *StringHeap) wbingenLog9a99fb1af846153b(ctx context.Context, i uint32) {
-	// fmt.Printf("%+v\n", h.Stack)
-	// TODO: get object from heap by index
 	if i >= uint32(len(h.Stack)) {
 		panic(fmt.Errorf("Index %d is out of range for %d", i, len(h.Stack)))
 	}
 
-	fmt.Printf("WBG: %v\n", h.Stack[i])
+	log.Printf("WBG: %v\n", h.Stack[i])
 }
 
 func NewWasmInstance(ctx context.Context) (Wasm, error) {

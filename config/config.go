@@ -1,8 +1,12 @@
 package config
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 type Config struct {
+	Debug            bool
 	MinimumNodeCount uint8
 	Network          string
 	RequestTimeout   time.Duration
@@ -10,10 +14,16 @@ type Config struct {
 }
 
 func New(network string) *Config {
-	return &Config{
+	c := &Config{
 		MinimumNodeCount: MINIMUM_NODE_COUNT,
 		Network:          network,
 		RequestTimeout:   REQUEST_TIMEOUT,
 		Version:          VERSION,
 	}
+
+	if val, ok := os.LookupEnv("LIT_DEBUG"); ok && val == "true" {
+		c.Debug = true
+	}
+
+	return c
 }
