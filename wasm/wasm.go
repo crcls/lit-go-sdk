@@ -50,7 +50,7 @@ func getStringFromMemory(m api.Memory, i, len uint32) (string, error) {
 	return string(b), nil
 }
 
-func wbingenThrow(mod api.Module, i, l uint32) {
+func wbingenThrow(ctx context.Context, mod api.Module, i, l uint32) {
 	s, err := getStringFromMemory(mod.Memory(), i, l)
 	if err != nil {
 		panic(err)
@@ -73,7 +73,7 @@ func (h *StringHeap) wbingenObjectDropRef(ctx context.Context, mod api.Module, i
 	h.Stack = append(h.Stack[:i], h.Stack[i+i:]...)
 }
 
-func (h *StringHeap) wbingenStringNew(mod api.Module, i, l uint32) uint32 {
+func (h *StringHeap) wbingenStringNew(ctx context.Context, mod api.Module, i, l uint32) uint32 {
 	// fmt.Printf("String New: memorySize: %d, index: %d, len: %d\n", mod.Memory().Size(context.Background()), i, l)
 
 	s, err := getStringFromMemory(mod.Memory(), i, l)
@@ -87,7 +87,7 @@ func (h *StringHeap) wbingenStringNew(mod api.Module, i, l uint32) uint32 {
 	return uint32(index)
 }
 
-func (h *StringHeap) wbingenLog9a99fb1af846153b(i uint32) {
+func (h *StringHeap) wbingenLog9a99fb1af846153b(ctx context.Context, i uint32) {
 	// fmt.Printf("%+v\n", h.Stack)
 	// TODO: get object from heap by index
 	if i >= uint32(len(h.Stack)) {
