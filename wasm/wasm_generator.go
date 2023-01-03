@@ -8,7 +8,7 @@ import (
 )
 
 func WasmBin() ([]byte, error) {
-	data, err := Asset("./threshold_crypto_wasm_bridge_bg.wasm")
+	data, err := Asset("threshold_crypto_wasm_bridge_bg.wasm")
 	if err != nil {
 		return nil, err
 	}
