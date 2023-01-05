@@ -59,7 +59,7 @@ type DecryptResMsg struct {
 	Err   error
 }
 
-func (c *Client) GetDecryptionShare(ctx context.Context, url string, params EncryptedKeyParams, ch chan DecryptResMsg) {
+func (c *Client) GetDecryptionShare(ctx context.Context, url string, params *EncryptedKeyParams, ch chan DecryptResMsg) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
@@ -103,15 +103,15 @@ func (c *Client) GetDecryptionShare(ctx context.Context, url string, params Encr
 }
 
 type EncryptedKeyParams struct {
-	AuthSig               *auth.AuthSig                      `json:"authSig"`
-	Chain                 string                             `json:"chain"`
-	EvmContractConditions []*conditions.EvmContractCondition `json:"evmContractConditions"`
-	ToDecrypt             string                             `json:"toDecrypt"`
+	AuthSig               auth.AuthSig                      `json:"authSig"`
+	Chain                 string                            `json:"chain"`
+	EvmContractConditions []conditions.EvmContractCondition `json:"evmContractConditions"`
+	ToDecrypt             string                            `json:"toDecrypt"`
 }
 
 func (c *Client) GetEncryptionKey(
 	ctx context.Context,
-	params EncryptedKeyParams,
+	params *EncryptedKeyParams,
 ) ([]byte, error) {
 	if !c.Ready {
 		return nil, fmt.Errorf("LitClient: not ready")

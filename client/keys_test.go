@@ -90,10 +90,10 @@ var testCondition = conditions.EvmContractCondition{
 }
 
 var testParams = EncryptedKeyParams{
-	AuthSig: &testAuthSig,
+	AuthSig: testAuthSig,
 	Chain:   "ethereum",
-	EvmContractConditions: []*conditions.EvmContractCondition{
-		&testCondition,
+	EvmContractConditions: []conditions.EvmContractCondition{
+		testCondition,
 	},
 	ToDecrypt: "toDecrypt",
 }
@@ -115,7 +115,7 @@ func TestGetEncryptionKey(t *testing.T) {
 		"result": "success"
 	}`}
 
-	key, err := c.GetEncryptionKey(testctx, testParams)
+	key, err := c.GetEncryptionKey(testctx, &testParams)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -132,7 +132,7 @@ func TestGetEncryptionKeyClientNotReady(t *testing.T) {
 		ServerKeysForNode: make(map[string]ServerKeys),
 	}
 
-	_, err := c.GetEncryptionKey(testctx, testParams)
+	_, err := c.GetEncryptionKey(testctx, &testParams)
 
 	if err == nil {
 		t.Errorf("Expected a client not ready error")
@@ -147,7 +147,7 @@ func TestGetDecryptionShare(t *testing.T) {
 	httpClient = &MockHttpClient{StatusCode: 500}
 	ch := make(chan DecryptResMsg, 1)
 
-	c.GetDecryptionShare(testctx, "http://localhost", testParams, ch)
+	c.GetDecryptionShare(testctx, "http://localhost", &testParams, ch)
 
 	select {
 	case msg := <-ch:
