@@ -75,7 +75,7 @@ func (c *Client) GetDecryptionShare(ctx context.Context, url string, params Encr
 		return
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode == 500 {
 		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
 		return
 	}
@@ -85,6 +85,11 @@ func (c *Client) GetDecryptionShare(ctx context.Context, url string, params Encr
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
+		return
+	}
+
+	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", string(body))}
 		return
 	}
 

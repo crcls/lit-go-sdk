@@ -48,7 +48,7 @@ func (c *Client) StoreEncryptionConditionWithNode(
 		return
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode == 500 {
 		ch <- SaveCondMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
 		return
 	}
@@ -57,6 +57,11 @@ func (c *Client) StoreEncryptionConditionWithNode(
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		ch <- SaveCondMsg{nil, err}
+		return
+	}
+
+	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		ch <- SaveCondMsg{nil, fmt.Errorf("Request failed: %s", string(body))}
 		return
 	}
 
