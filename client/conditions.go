@@ -27,9 +27,10 @@ type SaveCondMsg struct {
 	Err      error
 }
 
-func (c *Client) StoreEncryptionConditionWithNode(
+func StoreEncryptionConditionWithNode(
 	ctx context.Context,
-	url string,
+	url,
+	version string,
 	params SaveCondParams,
 	ch chan SaveCondMsg,
 ) {
@@ -39,10 +40,7 @@ func (c *Client) StoreEncryptionConditionWithNode(
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
-	defer cancel()
-
-	resp, err := c.NodeRequest(ctx, url+"/web/encryption/store", reqBody)
+	resp, err := NodeRequest(ctx, url+"/web/encryption/store", version, reqBody)
 	if err != nil {
 		ch <- SaveCondMsg{nil, err}
 		return

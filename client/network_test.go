@@ -31,9 +31,7 @@ func (mhc *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
 func TestConnect(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys}
 	client := &Client{
-		Config:            testConfig,
-		Ready:             false,
-		ServerKeysForNode: make(map[string]ServerKeys),
+		Config: testConfig,
 	}
 
 	if err := client.Connect(testctx); err != nil {
@@ -46,9 +44,7 @@ func TestConnectFail(t *testing.T) {
 		"result": "fail"
 	}`}
 	client := &Client{
-		Config:            testConfig,
-		Ready:             false,
-		ServerKeysForNode: make(map[string]ServerKeys),
+		Config: testConfig,
 	}
 
 	if err := client.Connect(testctx); err == nil {

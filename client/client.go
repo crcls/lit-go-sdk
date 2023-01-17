@@ -7,14 +7,14 @@ import (
 )
 
 type Client struct {
-	Config            *config.Config
-	ConnectedNodes    []string
-	Ready             bool
-	ServerKeysForNode map[string]ServerKeys
-	ServerPubKey      string
-	SubnetPubKey      string
-	NetworkPubKey     string
-	NetworkPubKeySet  string
+	Config           *config.Config
+	ConnectedNodes   []string
+	Ready            bool
+	ServerKeys       []ServerKeys
+	ServerPubKey     string
+	SubnetPubKey     string
+	NetworkPubKey    string
+	NetworkPubKeySet string
 }
 
 func New(ctx context.Context, c *config.Config) (*Client, error) {
@@ -23,9 +23,7 @@ func New(ctx context.Context, c *config.Config) (*Client, error) {
 	}
 
 	client := &Client{
-		Config:            c,
-		Ready:             false,
-		ServerKeysForNode: make(map[string]ServerKeys),
+		Config: c,
 	}
 
 	if err := client.Connect(ctx); err != nil {

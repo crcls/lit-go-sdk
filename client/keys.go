@@ -45,6 +45,27 @@ func (s ServerKeys) Key(name string) (string, bool) {
 	}
 }
 
+func MostCommonKey(serverKeys []ServerKeys, name string) string {
+	counts := make(map[string]int)
+	for _, keys := range serverKeys {
+		if k, ok := keys.Key(name); ok {
+			counts[k]++
+		}
+	}
+
+	mode := ""
+	maxCount := 0
+
+	for key, count := range counts {
+		if count > maxCount {
+			maxCount = count
+			mode = key
+		}
+	}
+
+	return mode
+}
+
 type DecryptionShareResponse struct {
 	DecryptionShare string `json:"decryptionShare"`
 	ErrorCode       string `json:"errorCode"`
@@ -59,17 +80,14 @@ type DecryptResMsg struct {
 	Err   error
 }
 
-func (c *Client) GetDecryptionShare(ctx context.Context, url string, params *EncryptedKeyParams, ch chan DecryptResMsg) {
+func GetDecryptionShare(ctx context.Context, url, version string, params *EncryptedKeyParams, ch chan DecryptResMsg) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
-	defer cancel()
-
-	resp, err := c.NodeRequest(ctx, url+"/web/encryption/retrieve", reqBody)
+	resp, err := NodeRequest(ctx, url+"/web/encryption/retrieve", version, reqBody)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
 		return
@@ -119,8 +137,11 @@ func (c *Client) GetEncryptionKey(
 
 	ch := make(chan DecryptResMsg)
 
+	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
+	defer cancel()
+
 	for _, url := range c.ConnectedNodes {
-		go c.GetDecryptionShare(ctx, url, params, ch)
+		go GetDecryptionShare(ctx, url, c.Config.Version, params, ch)
 	}
 
 	shares := make([]crypto.DecryptionShare, 0)
@@ -204,10 +225,14 @@ func (c *Client) SaveEncryptionKey(
 		scp.Permanent = 0
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
+	defer cancel()
+
 	for _, url := range c.ConnectedNodes {
-		go c.StoreEncryptionConditionWithNode(
+		go StoreEncryptionConditionWithNode(
 			ctx,
 			url,
+			c.Config.Version,
 			scp,
 			ch,
 		)
@@ -235,39 +260,4 @@ func (c *Client) SaveEncryptionKey(
 	}
 
 	return hex.EncodeToString(key), nil
-}
-
-func (c *Client) MostCommonKey(name string) string {
-	keyList := make(map[string]int)
-	for _, keys := range c.ServerKeysForNode {
-		k, ok := keys.Key(name)
-		if !ok {
-			if c.Config.Debug {
-				log.Printf("MostCommonKey: Key not found: %s\n", name)
-			}
-
-			continue
-		}
-
-		if _, ok := keyList[k]; ok {
-			keyList[k] += 1
-		} else {
-			keyList[k] = 1
-		}
-	}
-
-	if len(keyList) == 0 {
-		return ""
-	}
-
-	keys := make([]string, 0, len(keyList))
-	for key := range keyList {
-		keys = append(keys, key)
-	}
-
-	sort.SliceStable(keys, func(i, j int) bool {
-		return keyList[keys[i]] > keyList[keys[j]]
-	})
-
-	return keys[0]
 }

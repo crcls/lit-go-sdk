@@ -24,8 +24,11 @@ func (c *Client) Connect(ctx context.Context) error {
 	nodes := config.NETWORKS[c.Config.Network]
 	ch := make(chan HnskMsg, len(nodes))
 
+	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
+	defer cancel()
+
 	for _, url := range nodes {
-		go c.Handshake(ctx, url, ch)
+		go Handshake(ctx, url, c.Config.Version, ch)
 	}
 
 	var count uint8
@@ -33,13 +36,13 @@ func (c *Client) Connect(ctx context.Context) error {
 		if msg.Connected {
 			c.ConnectedNodes = append(c.ConnectedNodes, msg.Url)
 			keys := *msg.Keys
-			c.ServerKeysForNode[msg.Url] = keys
+			c.ServerKeys = append(c.ServerKeys, keys)
 
 			if count >= c.Config.MinimumNodeCount {
-				c.ServerPubKey = c.MostCommonKey("ServerPubKey")
-				c.SubnetPubKey = c.MostCommonKey("SubnetPubKey")
-				c.NetworkPubKey = c.MostCommonKey("NetworkPubKey")
-				c.NetworkPubKeySet = c.MostCommonKey("NetworkPubKeySet")
+				c.ServerPubKey = MostCommonKey(c.ServerKeys, "ServerPubKey")
+				c.SubnetPubKey = MostCommonKey(c.ServerKeys, "SubnetPubKey")
+				c.NetworkPubKey = MostCommonKey(c.ServerKeys, "NetworkPubKey")
+				c.NetworkPubKeySet = MostCommonKey(c.ServerKeys, "NetworkPubKeySet")
 			}
 		} else if c.Config.Debug {
 			log.Printf("Failed to connect to Lit Node: %s\n", msg.Url)
@@ -64,20 +67,14 @@ func (c *Client) Connect(ctx context.Context) error {
 	return fmt.Errorf("Failed to connect to enough nodes")
 }
 
-func (c *Client) NodeRequest(ctx context.Context, url string, body []byte) (*http.Response, error) {
+func NodeRequest(ctx context.Context, url, version string, body []byte) (*http.Response, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
 
-	if c.Config.Debug {
-		log.Println("Sending request to node:")
-		log.Printf("url: %s\n", url)
-		log.Printf("body: %s\n", string(body))
-	}
-
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("lit-js-sdk-version", c.Config.Version)
+	request.Header.Set("lit-js-sdk-version", version)
 
 	return httpClient.Do(request)
 }

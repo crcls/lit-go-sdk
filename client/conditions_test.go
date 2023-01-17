@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/crcls/lit-go-sdk/auth"
-	"github.com/crcls/lit-go-sdk/config"
 )
 
 var params = SaveCondParams{
@@ -22,7 +21,6 @@ var params = SaveCondParams{
 
 func TestStoreEncryptionConditionWithNode(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys} // Needed for client.Connect
-	c, _ := New(testctx, config.New("localhost"))
 
 	// Simulate success response
 	httpClient = &MockHttpClient{Response: `{
@@ -32,7 +30,7 @@ func TestStoreEncryptionConditionWithNode(t *testing.T) {
 
 	ch := make(chan SaveCondMsg, 1)
 
-	c.StoreEncryptionConditionWithNode(testctx, "http://localhost", params, ch)
+	StoreEncryptionConditionWithNode(testctx, "http://localhost", "version", params, ch)
 
 	select {
 	case msg := <-ch:
@@ -48,14 +46,13 @@ func TestStoreEncryptionConditionWithNode(t *testing.T) {
 
 func TestStoreEncryptionConditionWithNodeFailedRequest(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys} // Needed for client.Connect
-	c, _ := New(testctx, config.New("localhost"))
 
 	// Simulate success response
 	httpClient = &MockHttpClient{StatusCode: 500}
 
 	ch := make(chan SaveCondMsg, 1)
 
-	c.StoreEncryptionConditionWithNode(testctx, "http://localhost", params, ch)
+	StoreEncryptionConditionWithNode(testctx, "http://localhost", "version", params, ch)
 
 	select {
 	case msg := <-ch:
@@ -67,14 +64,13 @@ func TestStoreEncryptionConditionWithNodeFailedRequest(t *testing.T) {
 
 func TestStoreEncryptionConditionWithNodeUnexpectedResponse(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys} // Needed for client.Connect
-	c, _ := New(testctx, config.New("localhost"))
 
 	// Simulate success response
 	httpClient = &MockHttpClient{Response: ""}
 
 	ch := make(chan SaveCondMsg, 1)
 
-	c.StoreEncryptionConditionWithNode(testctx, "http://localhost", params, ch)
+	StoreEncryptionConditionWithNode(testctx, "http://localhost", "version", params, ch)
 
 	select {
 	case msg := <-ch:

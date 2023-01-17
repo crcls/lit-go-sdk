@@ -6,14 +6,9 @@ import (
 
 func TestHandshake(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys}
-	c := &Client{
-		Config:            testConfig,
-		Ready:             false,
-		ServerKeysForNode: make(map[string]ServerKeys),
-	}
 	ch := make(chan HnskMsg, 1)
 
-	c.Handshake(testctx, "http://localhost", ch)
+	Handshake(testctx, "http://localhost", "version", ch)
 
 	select {
 	case msg := <-ch:
@@ -29,14 +24,9 @@ func TestHandshake(t *testing.T) {
 
 func TestHandshakeResponseMissingKeys(t *testing.T) {
 	httpClient = &MockHttpClient{Response: `{"result": "fail"}`}
-	c := &Client{
-		Config:            testConfig,
-		Ready:             false,
-		ServerKeysForNode: make(map[string]ServerKeys),
-	}
 	ch := make(chan HnskMsg, 1)
 
-	c.Handshake(testctx, "http://localhost", ch)
+	Handshake(testctx, "http://localhost", "version", ch)
 
 	select {
 	case msg := <-ch:
@@ -48,14 +38,9 @@ func TestHandshakeResponseMissingKeys(t *testing.T) {
 
 func TestHandshakeFailedResponse(t *testing.T) {
 	httpClient = &MockHttpClient{StatusCode: 500}
-	c := &Client{
-		Config:            testConfig,
-		Ready:             false,
-		ServerKeysForNode: make(map[string]ServerKeys),
-	}
 	ch := make(chan HnskMsg, 1)
 
-	c.Handshake(testctx, "http://localhost", ch)
+	Handshake(testctx, "http://localhost", "version", ch)
 
 	select {
 	case msg := <-ch:

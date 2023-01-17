@@ -49,21 +49,19 @@ func TestServerKeysKeys(t *testing.T) {
 }
 
 func TestMostCommonKey(t *testing.T) {
-	client := &Client{
-		ServerKeysForNode: map[string]ServerKeys{
-			"http://localhost:7470": ServerKeys{
-				ServerPubKey: "common",
-			},
-			"http://localhost:7471": ServerKeys{
-				ServerPubKey: "common",
-			},
-			"http://localhost:7472": ServerKeys{
-				ServerPubKey: "uncommon",
-			},
+	serverKeys := []ServerKeys{
+		ServerKeys{
+			ServerPubKey: "common",
+		},
+		ServerKeys{
+			ServerPubKey: "common",
+		},
+		ServerKeys{
+			ServerPubKey: "uncommon",
 		},
 	}
 
-	key := client.MostCommonKey("ServerPubKey")
+	key := MostCommonKey(serverKeys, "ServerPubKey")
 	if key != "common" {
 		t.Errorf("Unexpected result from MostCommonKey: expected `common` got %s", key)
 	}
@@ -127,9 +125,7 @@ func TestGetEncryptionKey(t *testing.T) {
 
 func TestGetEncryptionKeyClientNotReady(t *testing.T) {
 	c := &Client{
-		Config:            testConfig,
-		Ready:             false,
-		ServerKeysForNode: make(map[string]ServerKeys),
+		Config: testConfig,
 	}
 
 	_, err := c.GetEncryptionKey(testctx, &testParams)
@@ -141,13 +137,12 @@ func TestGetEncryptionKeyClientNotReady(t *testing.T) {
 
 func TestGetDecryptionShare(t *testing.T) {
 	httpClient = &MockHttpClient{Response: testKeys}
-	c, _ := New(testctx, config.New("localhost"))
 
 	// Mock the network response
 	httpClient = &MockHttpClient{StatusCode: 500}
 	ch := make(chan DecryptResMsg, 1)
 
-	c.GetDecryptionShare(testctx, "http://localhost", &testParams, ch)
+	GetDecryptionShare(testctx, "http://localhost", "version", &testParams, ch)
 
 	select {
 	case msg := <-ch:

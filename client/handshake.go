@@ -14,7 +14,7 @@ type HnskMsg struct {
 	Error     error
 }
 
-func (c *Client) Handshake(ctx context.Context, url string, ch chan HnskMsg) {
+func Handshake(ctx context.Context, url, version string, ch chan HnskMsg) {
 	// TODO: make this configurable once supported by the network
 	reqBody, err := json.Marshal(map[string]string{
 		"clientPublicKey": "test",
@@ -24,10 +24,7 @@ func (c *Client) Handshake(ctx context.Context, url string, ch chan HnskMsg) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
-	defer cancel()
-
-	resp, err := c.NodeRequest(ctx, url+"/web/handshake", reqBody)
+	resp, err := NodeRequest(ctx, url+"/web/handshake", version, reqBody)
 	if err != nil {
 		ch <- HnskMsg{url, false, nil, err}
 		return
