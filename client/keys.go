@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"sort"
 
@@ -66,70 +65,22 @@ func MostCommonKey(serverKeys []ServerKeys, name string) string {
 	return mode
 }
 
-type DecryptionShareResponse struct {
-	DecryptionShare string `json:"decryptionShare"`
-	ErrorCode       string `json:"errorCode"`
-	Message         string `json:"message"`
-	Result          string `json:"result"`
-	ShareIndex      uint8  `json:"shareIndex"`
-	Status          string `json:"status"`
-}
-
-type DecryptResMsg struct {
-	Share *DecryptionShareResponse
-	Err   error
-}
-
-func GetDecryptionShare(ctx context.Context, url, version string, params *EncryptedKeyParams, ch chan DecryptResMsg) {
-	reqBody, err := json.Marshal(params)
-	if err != nil {
-		ch <- DecryptResMsg{nil, err}
-		return
-	}
-
-	resp, err := NodeRequest(ctx, url+"/web/encryption/retrieve", version, reqBody)
-	if err != nil {
-		ch <- DecryptResMsg{nil, err}
-		return
-	}
-
-	if resp.StatusCode == 500 {
-		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
-		return
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		ch <- DecryptResMsg{nil, err}
-		return
-	}
-
-	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", string(body))}
-		return
-	}
-
-	share := &DecryptionShareResponse{}
-	if err := json.Unmarshal(body, share); err != nil {
-		ch <- DecryptResMsg{nil, err}
-		return
-	}
-
-	ch <- DecryptResMsg{share, nil}
-}
-
 type EncryptedKeyParams struct {
-	AuthSig               auth.AuthSig                      `json:"authSig"`
-	Chain                 string                            `json:"chain"`
-	EvmContractConditions []conditions.EvmContractCondition `json:"evmContractConditions"`
-	ToDecrypt             string                            `json:"toDecrypt"`
+	AuthSig                 auth.AuthSig                        `json:"authSig"`
+	Chain                   string                              `json:"chain"`
+	AccessControlConditions []conditions.AccessControlCondition `json:"accessControlCondition"`
+	EvmContractConditions   []conditions.EvmContractCondition   `json:"evmContractConditions"`
+	SolRpcConditions        []conditions.SolRpcCondition        `json:"solRpcConditions"`
+	ToDecrypt               string                              `json:"toDecrypt"`
 }
 
-func (c *Client) GetEncryptionKey(
+func GetEncryptionKey[AC conditions.AuthCondition](
+	c *Client,
 	ctx context.Context,
-	params *EncryptedKeyParams,
+	authSig auth.AuthSig,
+	authConditions []AC,
+	chain string,
+	toDecrypt string,
 ) ([]byte, error) {
 	if !c.Ready {
 		return nil, fmt.Errorf("LitClient: not ready")
@@ -140,8 +91,30 @@ func (c *Client) GetEncryptionKey(
 	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
 	defer cancel()
 
+	params := &EncryptedKeyParams{
+		AuthSig:   authSig,
+		Chain:     chain,
+		ToDecrypt: toDecrypt,
+	}
+
+	ci := (interface{})(authConditions)
+
+	switch ci.(type) {
+	case []conditions.AccessControlCondition:
+		params.AccessControlConditions = ci.([]conditions.AccessControlCondition)
+	case []conditions.EvmContractCondition:
+		params.EvmContractConditions = ci.([]conditions.EvmContractCondition)
+		// case []conditions.SolRpcCondition:
+	}
+
+	reqBody, err := json.Marshal(params)
+	if err != nil {
+		ch <- DecryptResMsg{nil, err}
+		return nil, err
+	}
+
 	for _, url := range c.ConnectedNodes {
-		go GetDecryptionShare(ctx, url, c.Config.Version, params, ch)
+		go GetEncryptionShare(ctx, url, c.Config.Version, reqBody, ch)
 	}
 
 	shares := make([]crypto.DecryptionShare, 0)
@@ -179,11 +152,12 @@ func (c *Client) GetEncryptionKey(
 	return thresholdDecrypt(ctx, shares, params.ToDecrypt, c.NetworkPubKeySet)
 }
 
-func (c *Client) SaveEncryptionKey(
+func SaveEncryptionKey[AC conditions.AuthCondition](
+	c *Client,
 	ctx context.Context,
 	symmetricKey []byte,
 	authSig auth.AuthSig,
-	authConditions []conditions.EvmContractCondition,
+	conditions []AC,
 	chain string,
 	permanent bool,
 ) (string, error) {
@@ -201,7 +175,7 @@ func (c *Client) SaveEncryptionKey(
 	hash.Write(key)
 	hashStr := hex.EncodeToString(hash.Sum(nil))
 
-	condJson, err := json.Marshal(authConditions)
+	condJson, err := json.Marshal(conditions)
 	if err != nil {
 		return "", err
 	}
@@ -228,12 +202,17 @@ func (c *Client) SaveEncryptionKey(
 	ctx, cancel := context.WithTimeout(ctx, c.Config.RequestTimeout)
 	defer cancel()
 
+	reqBody, err := json.Marshal(&scp)
+	if err != nil {
+		return "", err
+	}
+
 	for _, url := range c.ConnectedNodes {
 		go StoreEncryptionConditionWithNode(
 			ctx,
 			url,
 			c.Config.Version,
-			scp,
+			reqBody,
 			ch,
 		)
 	}

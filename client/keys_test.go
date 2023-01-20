@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -113,7 +114,14 @@ func TestGetEncryptionKey(t *testing.T) {
 		"result": "success"
 	}`}
 
-	key, err := c.GetEncryptionKey(testctx, &testParams)
+	key, err := GetEncryptionKey(
+		c,
+		testctx,
+		testParams.AuthSig,
+		testParams.EvmContractConditions,
+		testParams.Chain,
+		testParams.ToDecrypt,
+	)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -128,7 +136,14 @@ func TestGetEncryptionKeyClientNotReady(t *testing.T) {
 		Config: testConfig,
 	}
 
-	_, err := c.GetEncryptionKey(testctx, &testParams)
+	_, err := GetEncryptionKey(
+		c,
+		testctx,
+		testParams.AuthSig,
+		testParams.EvmContractConditions,
+		testParams.Chain,
+		testParams.ToDecrypt,
+	)
 
 	if err == nil {
 		t.Errorf("Expected a client not ready error")
@@ -142,7 +157,9 @@ func TestGetDecryptionShare(t *testing.T) {
 	httpClient = &MockHttpClient{StatusCode: 500}
 	ch := make(chan DecryptResMsg, 1)
 
-	GetDecryptionShare(testctx, "http://localhost", "version", &testParams, ch)
+	reqBody, _ := json.Marshal(&testParams)
+
+	GetEncryptionShare(testctx, "http://localhost", "version", reqBody, ch)
 
 	select {
 	case msg := <-ch:
@@ -173,7 +190,8 @@ func TestSaveEncryptionKey(t *testing.T) {
 
 	thresholdEncrypt = mockThresholdEncrypt
 
-	encryptedKey, err := c.SaveEncryptionKey(
+	encryptedKey, err := SaveEncryptionKey(
+		c,
 		testctx,
 		[]byte("privateKey"),
 		testAuthSig,

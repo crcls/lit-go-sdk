@@ -21,3 +21,12 @@ type EvmContractCondition struct {
 	Chain           string          `json:"chain"`
 	ReturnValueTest ReturnValueTest `json:"returnValueTest"`
 }
+
+type AccessControlCondition struct {
+	ContractAddress      string   `json:"contractAddress"`
+	Chain                string   `json:"chain"`
+	StandardContractType string   `json:"standardContractType"`
+	Method               string   `json:"method"`
+	Parameters           []string `json:"parameters"`
+	ReturnValueTest      ReturnValueTest
+}

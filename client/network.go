@@ -3,7 +3,9 @@ package client
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -65,6 +67,93 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	return fmt.Errorf("Failed to connect to enough nodes")
+}
+
+func StoreEncryptionConditionWithNode(
+	ctx context.Context,
+	url,
+	version string,
+	body []byte,
+	ch chan SaveCondMsg,
+) {
+	resp, err := NodeRequest(ctx, url+"/web/encryption/store", version, body)
+	if err != nil {
+		ch <- SaveCondMsg{nil, err}
+		return
+	}
+
+	if resp.StatusCode >= 500 {
+		ch <- SaveCondMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
+		return
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		ch <- SaveCondMsg{nil, err}
+		return
+	}
+
+	if resp.StatusCode >= 400 {
+		ch <- SaveCondMsg{nil, fmt.Errorf("Request failed: %s", string(data))}
+		return
+	}
+
+	r := &SaveCondResponse{}
+	if err := json.Unmarshal(data, r); err != nil {
+		ch <- SaveCondMsg{nil, err}
+		return
+	}
+
+	ch <- SaveCondMsg{r, nil}
+}
+
+type ShareResponse struct {
+	DecryptionShare string `json:"decryptionShare"`
+	ErrorCode       string `json:"errorCode"`
+	Message         string `json:"message"`
+	Result          string `json:"result"`
+	ShareIndex      uint8  `json:"shareIndex"`
+	Status          string `json:"status"`
+}
+
+type DecryptResMsg struct {
+	Share *ShareResponse
+	Err   error
+}
+
+func GetEncryptionShare(ctx context.Context, url, version string, body []byte, ch chan DecryptResMsg) {
+	resp, err := NodeRequest(ctx, url+"/web/encryption/retrieve", version, body)
+	if err != nil {
+		ch <- DecryptResMsg{nil, err}
+		return
+	}
+
+	if resp.StatusCode >= 500 {
+		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", resp.Status)}
+		return
+	}
+
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		ch <- DecryptResMsg{nil, err}
+		return
+	}
+
+	if resp.StatusCode >= 400 {
+		ch <- DecryptResMsg{nil, fmt.Errorf("Request failed: %s", string(data))}
+		return
+	}
+
+	share := &ShareResponse{}
+	if err := json.Unmarshal(data, share); err != nil {
+		ch <- DecryptResMsg{nil, err}
+		return
+	}
+
+	ch <- DecryptResMsg{share, nil}
 }
 
 func NodeRequest(ctx context.Context, url, version string, body []byte) (*http.Response, error) {
