@@ -12,6 +12,7 @@ import (
 	"github.com/crcls/lit-go-sdk/auth"
 	"github.com/crcls/lit-go-sdk/conditions"
 	"github.com/crcls/lit-go-sdk/crypto"
+	"github.com/crcls/lit-go-sdk/jsonUtils"
 )
 
 var thresholdDecrypt func(ctx context.Context, shares []crypto.DecryptionShare, ciphertext, netPubKeySet string) ([]byte, error)
@@ -107,7 +108,7 @@ func GetEncryptionKey[AC conditions.AuthCondition](
 		// case []conditions.SolRpcCondition:
 	}
 
-	reqBody, err := json.Marshal(params)
+	reqBody, err := jsonUtils.JSONMarshal(params)
 	if err != nil {
 		ch <- DecryptResMsg{nil, err}
 		return nil, err
@@ -175,7 +176,7 @@ func SaveEncryptionKey[AC conditions.AuthCondition](
 	hash.Write(key)
 	hashStr := hex.EncodeToString(hash.Sum(nil))
 
-	condJson, err := json.Marshal(conditions)
+	condJson, err := jsonUtils.JSONMarshal(conditions)
 	if err != nil {
 		return "", err
 	}
