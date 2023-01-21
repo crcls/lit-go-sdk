@@ -208,6 +208,10 @@ func SaveEncryptionKey[AC conditions.AuthCondition](
 		return "", err
 	}
 
+	if c.Config.Debug {
+		log.Printf("Lit: Request Body JSON: %s\n", reqBody)
+	}
+
 	for _, url := range c.ConnectedNodes {
 		go StoreEncryptionConditionWithNode(
 			ctx,
