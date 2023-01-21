@@ -114,6 +114,10 @@ func GetEncryptionKey[AC conditions.AuthCondition](
 		return nil, err
 	}
 
+	if c.Config.Debug {
+		log.Printf("Lit: Request Body JSON: %s\n", reqBody)
+	}
+
 	for _, url := range c.ConnectedNodes {
 		go GetEncryptionShare(ctx, url, c.Config.Version, reqBody, ch)
 	}
