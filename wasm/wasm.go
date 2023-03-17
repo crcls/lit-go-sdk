@@ -43,9 +43,9 @@ func (w WasmInstance) Close() {
 }
 
 func getStringFromMemory(m api.Memory, i, len uint32) (string, error) {
-	b, ok := m.Read(context.Background(), i, len)
+	b, ok := m.Read(i, len)
 	if !ok {
-		return "", fmt.Errorf("Failed to read memory at %d with length %d. Memory Size: %d", i, len, m.Size(context.Background()))
+		return "", fmt.Errorf("Failed to read memory at %d with length %d. Memory Size: %d", i, len, m.Size())
 	}
 
 	return string(b), nil
@@ -107,11 +107,11 @@ func NewWasmInstance(ctx context.Context) (Wasm, error) {
 		NewFunctionBuilder().WithFunc(h.wbingenObjectDropRef).Export("__wbindgen_object_drop_ref").
 		NewFunctionBuilder().WithFunc(h.wbingenStringNew).Export("__wbindgen_string_new").
 		NewFunctionBuilder().WithFunc(h.wbingenLog9a99fb1af846153b).Export("__wbg_log_9a99fb1af846153b").
-		Instantiate(ctx, r); err != nil {
+		Instantiate(ctx); err != nil {
 		return wasmInstance, err
 	}
 
-	mod, err := r.InstantiateModuleFromBinary(ctx, wasmBytes)
+	mod, err := r.Instantiate(ctx, wasmBytes)
 	if err != nil {
 		return wasmInstance, err
 	}
